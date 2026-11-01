@@ -1,0 +1,61 @@
+# Python environments and generated runtime files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# JavaScript dependencies and build output
+node_modules/
+dist/
+build/
+.vite/
+
+# Local application state and databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+instance/
+data/local/
+
+# Credentials and machine-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.codex/
+
+# Original source documents and private media
+*.pdf
+*.PDF
+*.epub
+*.djvu
+qft_david_tong.pdf.md
+
+# Temporary files, generated previews, and caches
+tmp_*
+temp_*
+*.tmp
+*.temp
+.cache/
+cache/
+*.bak
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Obsidian: preserve user configuration and useful workspace settings.
+# Ignore only transient runtime state, plugins, and themes if present.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+.obsidian/plugins/
+.obsidian/themes/
