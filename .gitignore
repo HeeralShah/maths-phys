@@ -54,9 +54,9 @@ Thumbs.db
 
 # Obsidian: preserve user configuration and useful workspace settings.
 # Ignore only transient runtime state, plugins, and themes if present.
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-.obsidian/cache/
-.obsidian/plugins/
-.obsidian/themes/
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json
+vault/.obsidian/cache/
+vault/.obsidian/plugins/
+vault/.obsidian/themes/
 *.tsbuildinfo

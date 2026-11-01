@@ -1,6 +1,6 @@
 # Maths & Physics Study Vault
 
-This repository is an existing personal Obsidian vault and a working source workspace for a proposed private, local-first study application. The vault remains the canonical home for human-readable topic notes; the application would add structured study state, generated editions, graphs, and research results around it.
+This repository contains the `vault/` Obsidian vault and is a working source workspace for a proposed private, local-first study application. The vault remains the canonical home for human-readable topic notes; the application would add structured study state, generated editions, graphs, and research results around it.
 
 ## Current status
 
@@ -19,7 +19,7 @@ React/TypeScript and Python/FastAPI are the current stack choices. SQLite persis
 
 ## Existing vault
 
-The root folders `00 Home`, `01 System`, `02 Atlas`, `90 Inbox`, and `99 Archive`, along with `.obsidian`, are existing user material. Preserve them. Git is intended for private versioning of source notes, application code, schemas, and documentation. Keep source PDFs, local SQLite state, credentials, virtual environments, caches, and temporary artifacts out of Git.
+The Obsidian vault is `vault/`. Its folders `00 Home`, `01 System`, `02 Atlas`, `90 Inbox`, and `99 Archive`, along with `vault/.obsidian`, are existing user material. Preserve them. Git is intended for private versioning of source notes, application code, schemas, and documentation. Keep source PDFs, local SQLite state, credentials, virtual environments, caches, and temporary artifacts out of Git.
 
 ## Development
 

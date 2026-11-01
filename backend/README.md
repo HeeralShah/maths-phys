@@ -16,6 +16,30 @@ so a partial section (for example, 6 of 8 units) queues a job for those six unit
 Jobs have stable UUIDs and caller-provided unique idempotency keys; supported
 types are `prepare`, `revise`, and `signoff`.
 
+Research records use the evidence-linked `research_nodes`, `research_edges`,
+and evidence tables. Node claims require at least one source locator and quote;
+edges require evidence too and accept `cites`, `requires`, `extends`, or
+`assumes`. Local graph reads and mutations never enqueue work. The HTTP API
+provides `GET /sources`, `GET /research/graph`, node and edge GET/POST/PUT/DELETE
+routes under `/research`, and `GET /problems` for source-only exercise search.
+Problem creation accepts `inline`, `chapter_end`, and `problem_set` placements,
+the qualitative dimensions and provenance, plus all five prerecorded assistance
+levels. Ordinary problem listing/detail and search never include assistance.
+`POST /problems/{id}/reveal` returns only the explicitly requested level and
+does not create a job. Full solutions are protected at rest: Windows uses the
+current user's DPAPI; other platforms use Fernet with a mode-0600 key alongside
+the configured database (`<database>.solution.key`). That fallback key must be
+included in any manual backup and protected like the database. Windows DPAPI
+blobs can be recovered only under the same Windows user profile; include the
+database in backups and retain access to that profile. Existing plaintext rows
+in the legacy `problem_material` solution table are encrypted during startup.
+No API exposes that legacy table.
+
+Problem difficulty is a qualitative assessment and factual reason. The problem
+schema contains no duration or time-estimate field. Prerequisites are stored as
+provided; when a prerequisite names another problem ID, it must identify a
+problem in the same source.
+
 Worker-facing store methods claim the oldest queued job atomically, allow only a
 running job to become succeeded or failed, and can requeue running jobs whose
 lease timestamp is stale. These are persistence primitives; the included worker

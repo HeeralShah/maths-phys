@@ -10,13 +10,13 @@ Status: application foundation is in development. Every v1 capability below is i
 - Section signoff snapshots only units whose latest revision is currently marked understood.
 - Job records include status transitions, stable IDs, caller idempotency keys, atomic claiming primitives, and recovery of stale running leases.
 - Reads and manual checks do not enqueue jobs. Source registration stores metadata/outline only; it does not upload or process source content.
-- Seven backend standard-library tests are present in `backend/test_store.py`. The documented command is `python -m unittest discover -s backend -p "test_*.py"` from the repository root.
+- Twelve backend tests are present in `backend/test_store.py`. The documented command is `python -m unittest discover -s backend -p "test_*.py"` from the repository root.
 
 ### Not implemented or not operational
 
 - The worker is unconfigured. Queued jobs are durable, but no agent generation, revision, or synthesis executes; the stub refuses to mark a job complete without a real worker.
 - Source parsing, faithful rendered reading editions, generated edition publication, chat-driven revision plus refresh, and end-to-end signoff synthesis are not complete workflows.
-- Research/literature/assumption graphs, problem library, progressive hint UI, solution protection, backup/restore workflow, and full annotation/refresher experience remain unimplemented.
+- Saved evidence-linked research graph CRUD and source-exercise catalogue/reveal foundations now exist. Agent-driven research/extraction, full problem attempt tracking, backup/restore, and the full annotation/refresher experience remain incomplete.
 - The frontend scaffold is in development; do not infer that a visible shell means its linked v1 workflows are operational.
 
 The snapshot reflects repository code and test inventory; milestone checkboxes below remain open until the full acceptance criteria are evidenced.
@@ -111,3 +111,19 @@ Evidence: restore record, privacy/config review, and complete v1 acceptance chec
 - FastAPI application import and OpenAPI generation pass in the local virtual environment.
 - Frontend TypeScript checking and Vite production build pass (`npm run build`). Browser interaction/visual verification remains pending.
 - The browser shell connects to current APIs; graph/problem views and SDK processing remain explicitly unimplemented.
+
+## Saved research/problem slice and vault relocation — 2026-11-01
+
+- Knowledge folders and Obsidian configuration relocated together to `vault/`; 54 tracked files independently compared unchanged and worker verified all 57 moved files by SHA256. Internal wiki links remain vault-relative.
+- Twelve backend tests pass, including graph evidence, cross-source endpoint inclusion, protected solutions and reveal without job creation. Full solutions use Windows DPAPI on this machine; cross-device recovery remains to be designed.
+- Live HTTP smoke passed for source registration, saved edition, graph reads, problem catalogue privacy, deliberate full-solution reveal, and zero queued jobs. Synthetic smoke records used a temporary database only.
+- Frontend production build passes with Markdown/LaTeX rendering, saved graph/provenance browsing, source problems and explicit clarification jobs. Browser verification recorded separately when available.
+- SDK provider credentials remain unavailable in the environment; no paid comparison has run.
+
+### Obsidian registration and CLI
+
+Existing vault ID was repointed to `vault/` with Obsidian stopped and the global config backed up. App relaunched with the new vault active. Official `Obsidian.com` is installed (installer 1.12.7; app package 1.14.5). CLI remains disabled pending Settings > General > Advanced enablement; Windows lock screen prevents UI completion. Existing note/source hashes preserved.
+
+### Remaining verification
+
+Browser interaction verification was attempted but unavailable through the current UI provider. API smoke and TypeScript/Vite build passed; full visual QA remains open. Backup/restore implementation remains open; no backup feature is claimed.
