@@ -73,12 +73,12 @@ Acceptance: no signoff means no synthesis; synthesis excludes unchecked content;
 
 Acceptance: migration is additive and reversible; old marks are dated/historical and do not satisfy current checks by implication.
 
-### R8. Privacy, persistence, and recovery — Accepted direction; details open
+### R8. Privacy, persistence, and recovery — Accepted direction; implemented defaults recorded
 
 - Use private Git for source notes, docs, code, and schemas. Do not put original PDFs, local databases, secrets, environments, caches, or temporary output in Git.
 - Persist study state, results, and graph data in SQLite; persist canonical topic notes as Markdown in the Obsidian vault.
 - Provide backups that include the SQLite database, associated assets, and required encryption keys. The exact backup destination, key recovery, retention, and restore procedure remain open.
-- Encryption and reveal details are proposed and unresolved; see the decision log before implementing key handling or solution reveal storage.
+- The implemented local protection uses Windows DPAPI (or a private Fernet key elsewhere), deliberate assistance reveal and private validated backup archives. See the decision log and operational guide for recovery limits; portable Windows key recovery remains unresolved.
 
 Acceptance: an export/restore procedure is documented and demonstrated before v1 completion; restored state includes database plus assets; secrets remain excluded from Git; exact encryption and backup decisions are recorded.
 

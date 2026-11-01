@@ -1,0 +1,589 @@
+{
+  "schema_version": 1,
+  "content_key": "keshav-three-pass-reading-map-v1",
+  "source": {
+    "title": "How to Read a Paper — S. Keshav",
+    "metadata": {
+      "source_type": "research_method",
+      "authors": [
+        "S. Keshav"
+      ],
+      "citation": "S. Keshav, “How to read a paper,” ACM SIGCOMM Computer Communication Review 37(3), pp. 83–84, July 2007.",
+      "reference_note": "Reference entries are identified from the paper. Their substantive contents were not reviewed for this map; the learner’s historical reading status is not inferred."
+    }
+  },
+  "nodes": [
+    {
+      "key": "paper",
+      "node_type": "paper",
+      "label": "How to Read a Paper — S. Keshav",
+      "claim": "The article presents a three-pass method for reading research papers, then applies it to literature surveys. Its abstract frames the method as a practical response to a skill that is rarely taught.",
+      "metadata": {
+        "bibliography": "S. Keshav, ACM SIGCOMM Computer Communication Review 37(3), 83–84 (July 2007).",
+        "pdf_pages": [
+          1,
+          2,
+          3
+        ]
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 1, Abstract",
+          "quote": "This article outlines a practical and efficient three-pass method for reading research papers."
+        },
+        {
+          "locator": "PDF p. 1, §3",
+          "quote": "Paper reading skills are put to the test in doing a literature survey."
+        }
+      ]
+    },
+    {
+      "key": "pass1",
+      "node_type": "method_step",
+      "label": "Pass 1 — bird’s-eye view",
+      "claim": "Scan title, abstract, introduction, headings, conclusion and references. The purpose is to decide whether more reading is useful and form a general view, rather than inspect details.",
+      "metadata": {
+        "pass": 1
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.1",
+          "quote": "The first pass is a quick scan to get a bird’s-eye view of the paper."
+        },
+        {
+          "locator": "PDF p. 1, §2.1, steps 1–4",
+          "quote": "Carefully read the title, abstract, and introduction; read section headings; read the conclusions; glance over the references."
+        }
+      ]
+    },
+    {
+      "key": "five-cs",
+      "node_type": "reading_checklist",
+      "label": "Five Cs after Pass 1",
+      "claim": "Use Category, Context, Correctness, Contributions and Clarity to summarize the initial view. Correctness at this stage is an initial question about whether assumptions appear valid, not a proof audit.",
+      "metadata": {
+        "dimensions": [
+          "Category",
+          "Context",
+          "Correctness",
+          "Contributions",
+          "Clarity"
+        ]
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.1, five Cs",
+          "quote": "Category, Context, Correctness, Contributions, and Clarity."
+        },
+        {
+          "locator": "PDF p. 1, §2.1, Correctness",
+          "quote": "Do the assumptions appear to be valid?"
+        }
+      ]
+    },
+    {
+      "key": "pass1-exit",
+      "node_type": "decision",
+      "label": "Stop after Pass 1 when appropriate",
+      "claim": "Keshav says the first pass can be sufficient for work outside the reader’s area, or when interest, background knowledge or apparent assumptions do not justify deeper reading.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.1",
+          "quote": "Using this information, you may choose not to read further."
+        },
+        {
+          "locator": "PDF p. 1, §2.1",
+          "quote": "The first pass is adequate for papers that aren’t in your research area."
+        }
+      ]
+    },
+    {
+      "key": "pass2",
+      "node_type": "method_step",
+      "label": "Pass 2 — grasp the content",
+      "claim": "Read more carefully while still setting aside details such as proofs. Take notes, inspect figures and diagrams critically, and identify relevant references that remain unread. The target is a supported summary of the paper’s main thrust.",
+      "metadata": {
+        "pass": 2
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.2",
+          "quote": "In the second pass, read the paper with greater care, but ignore details such as proofs."
+        },
+        {
+          "locator": "PDF p. 2, §2.2",
+          "quote": "You should be able to summarize the main thrust of the paper, with supporting evidence, to someone else."
+        }
+      ]
+    },
+    {
+      "key": "figures",
+      "node_type": "reading_checklist",
+      "label": "Inspect figures, diagrams and graphs",
+      "claim": "During Pass 2, inspect figures and illustrations. Keshav specifically suggests checking graph labels and whether error bars support statistical significance.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.2, step 1",
+          "quote": "Are the axes properly labeled? Are results shown with error bars, so that conclusions are statistically significant?"
+        }
+      ]
+    },
+    {
+      "key": "unread-references",
+      "node_type": "workflow",
+      "label": "Mark relevant unread references",
+      "claim": "Pass 2 includes marking relevant references that have not been read, as a way to investigate the paper’s background. A citation alone does not establish that the cited work supports a claim in Keshav’s article.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.2, step 2",
+          "quote": "Remember to mark relevant unread references for further reading."
+        },
+        {
+          "locator": "PDF p. 1, §2.2, step 2",
+          "quote": "This is a good way to learn more about the background of the paper."
+        }
+      ]
+    },
+    {
+      "key": "pass2-stall",
+      "node_type": "decision",
+      "label": "If Pass 2 is not enough",
+      "claim": "Keshav lists setting the paper aside, returning after background reading, or continuing to Pass 3 as options when terminology, methods, writing or reader fatigue prevent understanding.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §2.2",
+          "quote": "You can now choose to: (a) set the paper aside ... (b) return to the paper later ... or (c) persevere and go on to the third pass."
+        }
+      ]
+    },
+    {
+      "key": "pass3",
+      "node_type": "method_step",
+      "label": "Pass 3 — virtually re-implement",
+      "claim": "To understand a paper in depth, attempt to recreate its work under the authors’ assumptions, then compare the recreation with the paper. Keshav says this comparison can expose innovations, hidden failings and assumptions.",
+      "metadata": {
+        "pass": 3
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §2.3",
+          "quote": "The key to the third pass is to attempt to virtually re-implement the paper."
+        },
+        {
+          "locator": "PDF p. 2, §2.3",
+          "quote": "By comparing this re-creation with the actual paper, you can easily identify not only a paper’s innovations, but also its hidden failings and assumptions."
+        }
+      ]
+    },
+    {
+      "key": "assumption-audit",
+      "node_type": "analysis_instruction",
+      "label": "Challenge assumptions statement by statement",
+      "claim": "The Pass 3 instruction is to identify and challenge assumptions in each statement and inspect proof or experimental techniques. This is advice about how to read a target paper; Keshav is not claiming that this article itself contains a scientific proof or experiment.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §2.3",
+          "quote": "You should identify and challenge every assumption in every statement."
+        },
+        {
+          "locator": "PDF p. 2, §2.3",
+          "quote": "At the end of this pass, you should be able to reconstruct the entire structure of the paper from memory."
+        }
+      ]
+    },
+    {
+      "key": "survey-start",
+      "node_type": "literature_survey_step",
+      "label": "Survey step 1 — seed papers",
+      "claim": "For a new area, Keshav recommends finding three to five recent papers with well-chosen keywords, taking one pass through each, then reading their related-work sections. A survey paper may provide a shortcut if one is found.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "Use an academic search engine ... and some well-chosen keywords to find three to five recent papers in the area."
+        },
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "Do one pass on each paper ... then read their related work sections."
+        }
+      ]
+    },
+    {
+      "key": "survey-repeated",
+      "node_type": "literature_survey_step",
+      "label": "Survey step 2 — repeated citations and authors",
+      "claim": "Look for citations shared across bibliographies and repeated author names. Keshav calls these key papers and researchers for the survey; this is a discovery heuristic, not evidence that the works share a particular scientific result.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "Find shared citations and repeated author names in the bibliography. These are the key papers and researchers in that area."
+        }
+      ]
+    },
+    {
+      "key": "survey-venues",
+      "node_type": "literature_survey_step",
+      "label": "Survey step 3 — inspect recent proceedings",
+      "claim": "Keshav suggests checking where key researchers published recently, identifying leading conferences, and scanning their recent proceedings for related work.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "The third step is to go to the website for these top conferences and look through their recent proceedings."
+        }
+      ]
+    },
+    {
+      "key": "survey-iterate",
+      "node_type": "literature_survey_step",
+      "label": "Iterate when a key citation is missing",
+      "claim": "Make two passes through the candidate set, add a key paper if it is cited by all of them but was missed earlier, and repeat as needed.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "If they all cite a key paper that you did not find earlier, obtain and read it, iterating as necessary."
+        }
+      ]
+    },
+    {
+      "key": "ref-1",
+      "node_type": "literature",
+      "label": "Reference [1] — Simon Peyton Jones, Research Skills",
+      "claim": "Keshav’s reference list points readers to Simon Peyton Jones’s Research Skills website. This cited item is recorded as unread; no substantive claim about its contents is made here.",
+      "status": "reference listed; not reviewed in this map",
+      "metadata": {
+        "reference_number": 1,
+        "bibliographic_entry": "[1] S. Peyton Jones, “Research Skills,” http://research.microsoft.com/ simonpj/Papers/giving-a-talk/giving-a-talk.htm.",
+        "map_review_status": "not_reviewed_in_this_map"
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 2, References",
+          "quote": "[1] S. Peyton Jones, “Research Skills,” http://research.microsoft.com/ simonpj/Papers/giving-a-talk/giving-a-talk.htm."
+        }
+      ]
+    },
+    {
+      "key": "ref-2",
+      "node_type": "literature",
+      "label": "Reference [2] — Timothy Roscoe, Writing Reviews for Systems Conferences",
+      "claim": "Keshav recommends this paper when the reader is reviewing a paper. Its substantive content was not reviewed for this map; no claim about the learner’s reading history is made.",
+      "status": "reference listed; not reviewed in this map",
+      "metadata": {
+        "reference_number": 2,
+        "bibliographic_entry": "[2] T. Roscoe, “Writing Reviews for Systems Conferences,” http://people.inf.ethz.ch/troscoe/pubs/review-writing.pdf.",
+        "map_review_status": "not_reviewed_in_this_map"
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 2, References",
+          "quote": "[2] T. Roscoe, “Writing Reviews for Systems Conferences,” http://people.inf.ethz.ch/troscoe/pubs/review-writing.pdf."
+        },
+        {
+          "locator": "PDF p. 2, References [2]",
+          "quote": "T. Roscoe, “Writing Reviews for Systems Conferences,”"
+        }
+      ]
+    },
+    {
+      "key": "ref-3",
+      "node_type": "literature",
+      "label": "Reference [3] — Henning Schulzrinne, Writing Technical Articles",
+      "claim": "Keshav recommends this website for readers planning to write a technical paper. Its substantive content was not reviewed for this map; no claim about the learner’s reading history is made.",
+      "status": "reference listed; not reviewed in this map",
+      "metadata": {
+        "reference_number": 3,
+        "bibliographic_entry": "[3] H. Schulzrinne, “Writing Technical Articles,” http://www.cs.columbia.edu/ hgs/etc/writing-style.html.",
+        "map_review_status": "not_reviewed_in_this_map"
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 2, References",
+          "quote": "[3] H. Schulzrinne, “Writing Technical Articles,” http://www.cs.columbia.edu/ hgs/etc/writing-style.html."
+        },
+        {
+          "locator": "PDF p. 2, References [3]",
+          "quote": "H. Schulzrinne, “Writing Technical Articles,”"
+        }
+      ]
+    },
+    {
+      "key": "ref-4",
+      "node_type": "literature",
+      "label": "Reference [4] — George Whitesides, Writing a Paper",
+      "claim": "Keshav recommends this overview for readers planning to write a technical paper. Its substantive content was not reviewed for this map; no claim about the learner’s reading history is made.",
+      "status": "reference listed; not reviewed in this map",
+      "metadata": {
+        "reference_number": 4,
+        "bibliographic_entry": "[4] G.M. Whitesides, “Whitesides’ Group: Writing a Paper,” http://www.che.iitm.ac.in/misc/dd/writepaper.pdf.",
+        "map_review_status": "not_reviewed_in_this_map"
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 3, References",
+          "quote": "[4] G.M. Whitesides, “Whitesides’ Group: Writing a Paper,” http://www.che.iitm.ac.in/misc/dd/writepaper.pdf."
+        },
+        {
+          "locator": "PDF p. 3, References [4]",
+          "quote": "G.M. Whitesides, “Whitesides’ Group: Writing a Paper,”"
+        }
+      ]
+    },
+    {
+      "key": "ref-5",
+      "node_type": "literature",
+      "label": "Reference [5] — ACM SIGCOMM Computer Communication Review online edition",
+      "claim": "The request section points to the online edition where readers may add comments. This is recorded as a cited resource, not as a source of claims about the reading method.",
+      "status": "reference listed; not reviewed in this map",
+      "metadata": {
+        "reference_number": 5,
+        "bibliographic_entry": "[5] ACM SIGCOMM Computer Communication Review Online, http://www.sigcomm.org/ccr/drupal/.",
+        "map_review_status": "not_reviewed_in_this_map"
+      },
+      "evidence": [
+        {
+          "locator": "PDF p. 3, References",
+          "quote": "[5] ACM SIGCOMM Computer Communication Review Online, http://www.sigcomm.org/ccr/drupal/."
+        },
+        {
+          "locator": "PDF p. 3, References [5]",
+          "quote": "ACM SIGCOMM Computer Communication Review Online,"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "key": "sequence-p1-p2",
+      "from": "pass1",
+      "to": "pass2",
+      "relation": "extends",
+      "claim": "Pass 2 builds on the initial overview when a deeper reading is warranted.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2",
+          "quote": "Each pass accomplishes specific goals and builds upon the previous pass."
+        }
+      ]
+    },
+    {
+      "key": "sequence-p2-p3",
+      "from": "pass2",
+      "to": "pass3",
+      "relation": "extends",
+      "claim": "Pass 3 is the further step for a reader who needs full understanding.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §2.3",
+          "quote": "To fully understand a paper ... requires a third pass."
+        }
+      ]
+    },
+    {
+      "key": "sequence-survey-1-2",
+      "from": "survey-start",
+      "to": "survey-repeated",
+      "relation": "requires",
+      "claim": "After reading seed papers and related work, look for repeated citations and authors.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "Otherwise, in the second step, find shared citations and repeated author names in the bibliography."
+        }
+      ]
+    },
+    {
+      "key": "sequence-survey-2-3",
+      "from": "survey-repeated",
+      "to": "survey-venues",
+      "relation": "extends",
+      "claim": "After identifying key researchers, inspect their venues and recent proceedings.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "The third step is to go to the website for these top conferences and look through their recent proceedings."
+        }
+      ]
+    },
+    {
+      "key": "sequence-survey-3-loop",
+      "from": "survey-venues",
+      "to": "survey-iterate",
+      "relation": "requires",
+      "claim": "Add missed shared citations to the candidate set and repeat the reading process.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "If they all cite a key paper that you did not find earlier, obtain and read it, iterating as necessary."
+        }
+      ]
+    },
+    {
+      "key": "listed-reference-1",
+      "from": "paper",
+      "to": "ref-1",
+      "relation": "cites",
+      "claim": "The local paper lists this item as reference [1]. This is a bibliographic pointer, not an asserted intellectual or scientific dependency.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, References [1]",
+          "quote": "S. Peyton Jones, “Research Skills,”"
+        }
+      ]
+    },
+    {
+      "key": "listed-reference-2",
+      "from": "paper",
+      "to": "ref-2",
+      "relation": "cites",
+      "claim": "The local paper lists this item as reference [2]. This is a bibliographic pointer, not an asserted intellectual or scientific dependency.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §5, Related Work",
+          "quote": "If you are reading a paper to do a review, you should also read Timothy Roscoe’s paper on “Writing reviews for systems conferences”."
+        }
+      ]
+    },
+    {
+      "key": "listed-reference-3",
+      "from": "paper",
+      "to": "ref-3",
+      "relation": "cites",
+      "claim": "The local paper lists this item as reference [3]. This is a bibliographic pointer, not an asserted intellectual or scientific dependency.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §5, Related Work",
+          "quote": "If you’re planning to write a technical paper, you should refer both to Henning Schulzrinne’s comprehensive web site"
+        }
+      ]
+    },
+    {
+      "key": "listed-reference-4",
+      "from": "paper",
+      "to": "ref-4",
+      "relation": "cites",
+      "claim": "The local paper lists this item as reference [4]. This is a bibliographic pointer, not an asserted intellectual or scientific dependency.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §5, Related Work",
+          "quote": "you should refer both to ... George Whitesides’s excellent overview of the process."
+        }
+      ]
+    },
+    {
+      "key": "listed-reference-5",
+      "from": "paper",
+      "to": "ref-5",
+      "relation": "cites",
+      "claim": "The local paper lists this item as reference [5]. This is a bibliographic pointer, not an asserted intellectual or scientific dependency.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §6, A Request",
+          "quote": "You can also add comments at CCRo, the online edition of CCR."
+        }
+      ]
+    },
+    {
+      "key": "pass1-five-cs",
+      "from": "pass1",
+      "to": "five-cs",
+      "relation": "requires",
+      "claim": "Pass 1 concludes with the five-C questions.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.1, five Cs",
+          "quote": "At the end of the first pass, you should be able to answer the five Cs:"
+        }
+      ]
+    },
+    {
+      "key": "five-cs-stop",
+      "from": "five-cs",
+      "to": "pass1-exit",
+      "relation": "requires",
+      "claim": "Use the five-C answers to decide whether to continue reading.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.1",
+          "quote": "Using this information, you may choose not to read further."
+        }
+      ]
+    },
+    {
+      "key": "pass2-figures",
+      "from": "pass2",
+      "to": "figures",
+      "relation": "requires",
+      "claim": "Keshav includes critical figure and graph inspection in Pass 2.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.2, step 1",
+          "quote": "Look carefully at the figures, diagrams and other illustrations in the paper."
+        }
+      ]
+    },
+    {
+      "key": "pass2-references",
+      "from": "pass2",
+      "to": "unread-references",
+      "relation": "requires",
+      "claim": "Pass 2 marks relevant unread references for follow-up.",
+      "evidence": [
+        {
+          "locator": "PDF p. 1, §2.2, step 2",
+          "quote": "Remember to mark relevant unread references for further reading."
+        }
+      ]
+    },
+    {
+      "key": "pass2-stall-decision",
+      "from": "pass2",
+      "to": "pass2-stall",
+      "relation": "requires",
+      "claim": "If Pass 2 does not produce understanding, the paper presents three options.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §2.2",
+          "quote": "You can now choose to: (a) set the paper aside ... or (c) persevere and go on to the third pass."
+        }
+      ]
+    },
+    {
+      "key": "pass3-audit",
+      "from": "pass3",
+      "to": "assumption-audit",
+      "relation": "requires",
+      "claim": "The third pass includes challenging assumptions in each statement.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §2.3",
+          "quote": "You should identify and challenge every assumption in every statement."
+        }
+      ]
+    },
+    {
+      "key": "survey-pass1",
+      "from": "survey-start",
+      "to": "pass1",
+      "relation": "requires",
+      "claim": "The survey procedure starts with one pass on each candidate paper.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "Do one pass on each paper to get a sense of the work."
+        }
+      ]
+    },
+    {
+      "key": "survey-pass2",
+      "from": "survey-iterate",
+      "to": "pass2",
+      "relation": "requires",
+      "claim": "Keshav recommends two passes through the selected survey papers.",
+      "evidence": [
+        {
+          "locator": "PDF p. 2, §3",
+          "quote": "Make two passes through these papers."
+        }
+      ]
+    }
+  ]
+}

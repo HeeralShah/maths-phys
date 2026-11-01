@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+import subprocess
+import hashlib
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -40,6 +42,182 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(reopened.get_checks(revision["id"])[0]["detail"], "Check sign convention")
         self.assertEqual(reopened.read_edition(revision["unit_id"])["id"], revision["id"])
         self.assertEqual(reopened.jobs(), [])
+
+    def test_registered_pdf_page_is_retrievable_only_by_source_and_package_import_is_atomic(self):
+        import fitz
+        pdf = Path(self.tmp.name) / "owned.pdf"
+        doc = fitz.open()
+        page = doc.new_page()
+        page.insert_text((72, 72), "Conservation of energy")
+        doc.save(pdf)
+        doc.close()
+        source = self.store.register_pdf("Energy", str(pdf))
+        self.assertEqual(source["metadata"]["local_file"]["page_count"], 1)
+        extracted = self.store.source_page(source["id"], 1)
+        self.assertIn("Conservation of energy", extracted["text"])
+        self.assertTrue(extracted["image_base64"])
+        with self.assertRaises(ValueError): self.store.source_page(source["id"], 2)
+        bad = {"edition": {"units": [{"section_title": "A", "unit_title": "B", "content": ""}]}}
+        with self.assertRaises(ValueError): self.store.import_prepared_edition(source["id"], bad)
+        good = {"complete": True, "edition": {"title": "Reading", "units": [{"section_title": "Chapter 1", "unit_title": "Energy",
+            "content": "Faithful source notation", "source_refs": [{"page": 1}], "annotations": [{"mark": "yellow", "detail": "old mark", "source_locator": "p. 1"}]}]}}
+        imported = self.store.import_prepared_edition(source["id"], good)
+        self.assertTrue(imported["complete"])
+        self.assertEqual(self.store.read_edition(imported["units"][0]["unit_id"])["content"], "Faithful source notation")
+        annotation = self.store.imported_annotations(imported["units"][0]["id"])[0]
+        self.assertEqual(annotation["mark"], "yellow")
+        self.assertTrue(annotation["historical"])
+        self.assertIsNone(annotation["original_date"])
+
+    def test_edition_package_graph_nodes_and_edges_are_published_atomically_with_evidence(self):
+        source = self.store.register_source("Paper")
+        package = {"complete": True, "edition": {"title": "Paper notes", "units": [
+            {"section_title": "Results", "unit_title": "Main result", "content": "A result."}]},
+            "graph": {"nodes": [
+                {"local_key": "paper", "node_type": "literature", "label": "Paper", "claim": "Proves a result.",
+                 "evidence": [{"locator": "p. 2", "quote": "The result follows."}]},
+                {"local_key": "result", "node_type": "result", "label": "Main result", "claim": "A theorem holds.",
+                 "evidence": [{"locator": "p. 3", "quote": "We have proved the theorem."}]}],
+                "edges": [{"from_key": "paper", "to_key": "result", "relation": "extends", "claim": "The paper establishes this result.",
+                           "evidence": [{"locator": "p. 3", "quote": "We have proved the theorem."}]}]}}
+        result = self.store.import_prepared_edition(source["id"], package, "paper-publication")
+        repeated = self.store.import_prepared_edition(source["id"], package, "paper-publication")
+        self.assertEqual(repeated["units"][0]["id"], result["units"][0]["id"])
+        with self.assertRaisesRegex(ValueError, "different complete package"):
+            self.store.import_prepared_edition(source["id"], package | {"edition": {"title": "Different"}}, "paper-publication")
+        graph = self.store.research_graph(source["id"])
+        self.assertEqual(len(graph["nodes"]), 2)
+        self.assertEqual(len(graph["edges"]), 1)
+        self.assertIn(result["graph"]["nodes"]["paper"], {node["id"] for node in graph["nodes"]})
+
+    def test_problem_attempts_persist_and_do_not_start_jobs(self):
+        source = self.store.register_source("Problem source")
+        assistance = {level: f"{level} content" for level in ("orientation", "small_hint", "strong_hint", "partial_solution", "full_solution")}
+        problem = self.store.create_problem(source["id"], "Find x", "chapter_end", None, "algebra", [],
+            "familiar", "single", "light", {"locator": "p. 1", "quote": "Find x"}, "not attempted", None, assistance)
+        attempt = self.store.record_problem_attempt(problem["id"], "x=2", "correct", "showed work")
+        self.assertEqual(self.store.problem_attempts(problem["id"])[0]["id"], attempt["id"])
+        self.assertEqual(self.store.jobs(), [])
+
+    def test_atlas_plan_requires_checked_signed_revision_hashes_and_is_idempotent(self):
+        import json
+        source = self.store.register_source("Atlas", sections=[{"title": "Chapter", "units": [{"title": "Energy"}]}])
+        unit = source["sections"][0]["units"][0]
+        revision = self.store.save_revision(unit["id"], "checked content")
+        self.store.add_check(revision["id"], "understood", True)
+        signoff = self.store.signoff_section(source["sections"][0]["id"], "learner", "atlas:signoff")
+        signoff_id = json.loads(signoff["payload"])["signoff_id"]
+        vault = Path(self.tmp.name) / "vault"
+        vault.mkdir()
+        plan = {"idempotency_key": "atlas:apply", "signoff_id": signoff_id,
+                "source_revision_ids": [revision["id"]], "expected_hashes": {"02 Atlas/Energy.md": None},
+                "files": [{"path": "02 Atlas/Energy.md", "content": "# Energy\n\nCanonical note.\n"}]}
+        applied = self.store.apply_synthesis_plan(vault, plan)
+        self.assertEqual(applied["status"], "applied")
+        self.assertEqual((vault / "02 Atlas/Energy.md").read_text(encoding="utf-8"), "# Energy\n\nCanonical note.\n")
+        self.assertEqual(self.store.apply_synthesis_plan(vault, plan)["id"], applied["id"])
+        plan["idempotency_key"] = "atlas:apply-stale"
+        with self.assertRaisesRegex(ValueError, "changed since plan preparation"):
+            self.store.apply_synthesis_plan(vault, plan)
+
+    def test_atlas_plan_rejects_changed_signed_material(self):
+        import json
+        source = self.store.register_source("Atlas", sections=[{"title": "Chapter", "units": [{"title": "Energy"}]}])
+        unit = source["sections"][0]["units"][0]
+        revision = self.store.save_revision(unit["id"], "checked content")
+        self.store.add_check(revision["id"], "understood", True)
+        signoff = self.store.signoff_section(source["sections"][0]["id"], "learner", "atlas:signoff2")
+        signoff_id = json.loads(signoff["payload"])["signoff_id"]
+        self.store.save_revision(unit["id"], "materially revised")
+        vault = Path(self.tmp.name) / "vault"
+        vault.mkdir()
+        plan = {"idempotency_key": "atlas:stale-source", "signoff_id": signoff_id,
+                "source_revision_ids": [revision["id"]], "expected_hashes": {"02 Atlas/Energy.md": None},
+                "files": [{"path": "02 Atlas/Energy.md", "content": "# Energy"}]}
+        with self.assertRaisesRegex(ValueError, "reconfirm"):
+            self.store.apply_synthesis_plan(vault, plan)
+
+    def test_formatting_revision_records_kind_and_preserves_understanding_for_plan(self):
+        import json
+        source = self.store.register_source("Atlas", sections=[{"title": "Chapter", "units": [{"title": "Energy"}]}])
+        unit = source["sections"][0]["units"][0]
+        first = self.store.save_revision(unit["id"], "# Energy\n\nConservation holds.")
+        self.store.add_check(first["id"], "understood", True)
+        signoff = self.store.signoff_section(source["sections"][0]["id"], "learner", "atlas:format-signoff")
+        signoff_id = json.loads(signoff["payload"])["signoff_id"]
+        second = self.store.save_revision(unit["id"], "# Energy\n\nConservation   holds.\n")
+        self.assertEqual(second["change_kind"], "formatting")
+        self.assertTrue(self.store.understanding(second["id"]))
+        with self.store._connection() as db:
+            first_check_date = db.execute("SELECT created_at FROM checks WHERE revision_id=? AND check_type='understood'", (first["id"],)).fetchone()[0]
+            carried_check_date = db.execute("SELECT created_at FROM checks WHERE revision_id=? AND check_type='understood'", (second["id"],)).fetchone()[0]
+        self.assertEqual(carried_check_date, first_check_date)
+        vault = Path(self.tmp.name) / "vault"
+        vault.mkdir()
+        plan = {"idempotency_key": "atlas:format-apply", "signoff_id": signoff_id,
+                "source_revision_ids": [first["id"]], "expected_hashes": {"02 Atlas/Energy.md": None},
+                "files": [{"path": "02 Atlas/Energy.md", "content": "# Energy\n\nConservation holds.\n"}]}
+        self.assertEqual(self.store.apply_synthesis_plan(vault, plan)["status"], "applied")
+
+    def test_interrupted_atlas_write_is_rolled_back_on_store_restart(self):
+        import json
+        import base64
+        vault = Path(self.tmp.name) / "vault"
+        vault.mkdir()
+        note = vault / "Note.md"
+        note.write_text("Original", encoding="utf-8")
+        original = {"path": str(note), "existed": True,
+                    "content": base64.b64encode(b"Original").decode("ascii")}
+        note.write_text("Half applied", encoding="utf-8")
+        with self.store._connection() as db:
+            db.execute("INSERT INTO atlas_operations VALUES(?,?,?,?,?,?,?,?)", (
+                "interrupted-id", "interrupted-key", "applying",
+                json.dumps({"originals": [original], "changes": []}), None, None, "now", "now"))
+        reopened = Store(self.path)
+        self.assertEqual(note.read_text(encoding="utf-8"), "Original")
+        with reopened._connection() as db:
+            operation = db.execute("SELECT status,payload FROM atlas_operations WHERE id='interrupted-id'").fetchone()
+        self.assertEqual(operation["status"], "recovered")
+        self.assertEqual(operation["payload"], "{}")
+
+    def test_synthesis_commit_contains_only_atlas_targets_and_preserves_staged_work(self):
+        repo = Path(self.tmp.name) / "repo"
+        vault = repo / "vault"
+        atlas = vault / "02 Atlas"
+        atlas.mkdir(parents=True)
+        note = atlas / "Energy.md"
+        note.write_text("# Energy\n\nOriginal note.\n", encoding="utf-8")
+        unrelated = repo / "unrelated.md"
+        unrelated.write_text("Original unrelated.\n", encoding="utf-8")
+        def git(*args): return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
+        git("init", "--quiet")
+        git("config", "user.name", "Maths Phys Test")
+        git("config", "user.email", "test@example.invalid")
+        git("add", "--", "vault/02 Atlas/Energy.md", "unrelated.md")
+        git("commit", "--quiet", "--message", "initial notes")
+        unrelated.write_text("Staged change retained.\n", encoding="utf-8")
+        git("add", "--", "unrelated.md")
+
+        store = Store(repo / "study.sqlite3")
+        source = store.register_source("Energy", sections=[{"title": "Chapter", "units": [{"title": "Energy"}]}])
+        unit = source["sections"][0]["units"][0]
+        revision = store.save_revision(unit["id"], "Checked energy result")
+        store.add_check(revision["id"], "understood", True)
+        job = store.signoff_section(source["sections"][0]["id"], "learner", "git-signoff", "Add the Rayleigh quotient explanation")
+        import json
+        signoff_id = json.loads(job["payload"])["signoff_id"]
+        store.claim_job()
+        original_hash = hashlib.sha256(note.read_bytes()).hexdigest()
+        plan = {"signoff_id": signoff_id, "source_revision_ids": [revision["id"]], "idempotency_key": "git-plan",
+                "intent": "Add the Rayleigh quotient explanation", "expected_hashes": {"02 Atlas/Energy.md": original_hash},
+                "files": [{"path": "02 Atlas/Energy.md", "content": "# Energy\n\nRayleigh quotient.\n"}]}
+        prepared = store.import_synthesis_plan(job["id"], vault, plan)
+        result = store.apply_imported_synthesis_plan(prepared["id"], vault)
+        self.assertEqual(result["versioning_status"], "applied")
+        changed = git("show", "--pretty=format:", "--name-only", "HEAD").stdout.splitlines()
+        self.assertEqual(changed, ["vault/02 Atlas/Energy.md"])
+        self.assertEqual(git("diff", "--cached", "--name-only").stdout.splitlines(), ["unrelated.md"])
+        self.assertIn("Add the Rayleigh quotient explanation", git("log", "-1", "--pretty=%s").stdout)
 
     def test_section_signoff_includes_only_understood_units_and_can_retract(self):
         specs = [{"title": "Chapter", "units": [{"title": f"Unit {i}"} for i in range(8)]}]

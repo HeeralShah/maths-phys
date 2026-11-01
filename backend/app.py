@@ -1,11 +1,15 @@
 """Optional FastAPI adapter. Set MATHSPHYS_DB to choose the SQLite file."""
 import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 from .store import Store
+from .vault import read_note, search_notes
+from .problem_sets import build_router as build_problem_sets_router
 
 store = Store(os.environ.get("MATHSPHYS_DB", "maths_phys.sqlite3"))
 app = FastAPI(title="Maths-Phys local service", version="0.1.0")
+app.include_router(build_problem_sets_router(store))
 
 class SourceIn(BaseModel):
     title: str
@@ -14,7 +18,7 @@ class SourceIn(BaseModel):
 
 class RevisionIn(BaseModel): content: str
 class CheckIn(BaseModel): check_type: str; passed: bool; detail: str = ""
-class SignoffIn(BaseModel): scope: str = ""; actor: str; idempotency_key: str
+class SignoffIn(BaseModel): scope: str = ""; actor: str; idempotency_key: str; intent: str = Field(default="", max_length=300)
 class JobIn(BaseModel): job_type: str; entity_id: str; idempotency_key: str; payload: dict = Field(default_factory=dict)
 class EvidenceIn(BaseModel): locator: str; quote: str; source_ref: str | None = None; metadata: dict = Field(default_factory=dict)
 class NodeIn(BaseModel): source_id: str; node_type: str; label: str; claim: str; metadata: dict = Field(default_factory=dict); evidence: list[EvidenceIn]
@@ -27,6 +31,12 @@ class ProblemIn(BaseModel):
     prerequisites: list = Field(default_factory=list); novelty: str; combination: str; workload: str
     provenance: EvidenceIn; experience: str; difficulty: dict | None = None; assistance: dict
 class RevealIn(BaseModel): level: str
+class RegisterPdfIn(BaseModel): path: str; title: str = ""; metadata: dict = Field(default_factory=dict); sections: list[dict] = Field(default_factory=list)
+class PreparedEditionIn(BaseModel): complete: bool; edition: dict; problems: list[dict] = Field(default_factory=list); graph: dict = Field(default_factory=dict); publication_key: str | None = None
+class AttemptIn(BaseModel): response: str; outcome: str; details: str = ""
+class ProfileIn(BaseModel): goals: str = ""; assumed_knowledge: list[str] = Field(default_factory=list); misconceptions: list[str] = Field(default_factory=list); preferred_explanations: str = ""; preferences: dict = Field(default_factory=dict); notes: str = ""
+
+VAULT_ROOT = Path(os.environ.get("MATHSPHYS_VAULT", Path(__file__).resolve().parents[1] / "vault")).resolve()
 
 @app.post("/sources", status_code=201)
 def register_source(body: SourceIn):
@@ -36,11 +46,51 @@ def register_source(body: SourceIn):
 @app.get("/sources")
 def list_sources(): return store.sources()
 
+@app.get("/profile")
+def get_profile(): return store.get_learning_profile()
+
+@app.put("/profile")
+def update_profile(body: ProfileIn):
+    try: return store.update_learning_profile(body.model_dump())
+    except ValueError as e: raise HTTPException(400, str(e))
+
 @app.get("/sources/{source_id}")
 def get_source(source_id: str):
     result = store.get_source(source_id)
     if result is None: raise HTTPException(404, "source not found")
     return result
+
+@app.post("/sources/register-file", status_code=201)
+def register_pdf(body: RegisterPdfIn):
+    try: return store.register_pdf(body.title, body.path, body.metadata, body.sections)
+    except (ValueError, OSError) as e: raise HTTPException(400, str(e))
+
+@app.get("/sources/{source_id}/pages/{page_number}")
+def source_page(source_id: str, page_number: int):
+    try: return store.source_page(source_id, page_number)
+    except KeyError as e: raise HTTPException(404, str(e))
+    except (ValueError, OSError) as e: raise HTTPException(400, str(e))
+
+@app.get("/sources/{source_id}/pdf")
+def source_pdf_page(source_id: str, page: int = Query(ge=1)):
+    return source_page(source_id, page)
+
+@app.post("/sources/{source_id}/editions/import", status_code=201)
+def import_edition(source_id: str, body: PreparedEditionIn):
+    try: return store.import_prepared_edition(source_id, body.model_dump(exclude={"publication_key"}), body.publication_key)
+    except KeyError as e: raise HTTPException(404, str(e))
+    except ValueError as e: raise HTTPException(400, str(e))
+
+@app.get("/vault/search")
+def search_vault(q: str = Query(min_length=1, max_length=300)):
+    try: return search_notes(VAULT_ROOT, q)
+    except (OSError, ValueError) as e: raise HTTPException(400, str(e))
+
+@app.get("/vault/notes/{relative_path:path}")
+def read_vault_note(relative_path: str):
+    try: return read_note(VAULT_ROOT, relative_path)
+    except FileNotFoundError as e: raise HTTPException(404, str(e))
+    except (OSError, ValueError) as e: raise HTTPException(400, str(e))
 
 @app.get("/research/graph")
 def research_graph(source_id: str | None = None):
@@ -116,6 +166,17 @@ def reveal_problem(problem_id: str, body: RevealIn):
     except KeyError as e: raise HTTPException(404, str(e))
     except ValueError as e: raise HTTPException(400, str(e))
 
+@app.post("/problems/{problem_id}/attempts", status_code=201)
+def record_attempt(problem_id: str, body: AttemptIn):
+    try: return store.record_problem_attempt(problem_id, body.response, body.outcome, body.details)
+    except KeyError as e: raise HTTPException(404, str(e))
+    except ValueError as e: raise HTTPException(400, str(e))
+
+@app.get("/problems/{problem_id}/attempts")
+def problem_attempts(problem_id: str):
+    try: return store.problem_attempts(problem_id)
+    except KeyError as e: raise HTTPException(404, str(e))
+
 @app.put("/units/{unit_id}/revisions")
 def save_revision(unit_id: str, body: RevisionIn):
     try: return store.save_revision(unit_id, body.content)
@@ -132,11 +193,40 @@ def add_check(revision_id: str, body: CheckIn):
 @app.get("/revisions/{revision_id}/checks")
 def get_checks(revision_id: str): return store.get_checks(revision_id)
 
+@app.get("/revisions/{revision_id}/annotations")
+def imported_annotations(revision_id: str):
+    try: return store.imported_annotations(revision_id)
+    except KeyError as e: raise HTTPException(404, str(e))
+
 @app.post("/sections/{section_id}/signoffs", status_code=202)
 def signoff_section(section_id: str, body: SignoffIn):
-    try: return store.signoff_section(section_id, body.actor, body.idempotency_key)
+    try: return store.signoff_section(section_id, body.actor, body.idempotency_key, body.intent)
     except KeyError: raise HTTPException(404, "section not found")
     except ValueError as e: raise HTTPException(400, str(e))
+
+@app.post("/atlas/apply-plan")
+def apply_atlas_plan(body: dict):
+    try: return store.apply_synthesis_plan(VAULT_ROOT, body)
+    except KeyError as e: raise HTTPException(404, str(e))
+    except ValueError as e: raise HTTPException(409, str(e))
+
+@app.get("/synthesis-plans/{plan_id}")
+def get_synthesis_plan(plan_id: str):
+    result = store.get_synthesis_plan(plan_id)
+    if result is None: raise HTTPException(404, "synthesis plan not found")
+    return result
+
+@app.post("/synthesis-plans/{plan_id}/apply")
+def apply_imported_synthesis_plan(plan_id: str):
+    try: return store.apply_imported_synthesis_plan(plan_id, VAULT_ROOT)
+    except KeyError as e: raise HTTPException(404, str(e))
+    except ValueError as e: raise HTTPException(409, str(e))
+
+@app.post("/synthesis-plans/{plan_id}/commit")
+def retry_synthesis_commit(plan_id: str):
+    try: return store.apply_imported_synthesis_plan(plan_id, VAULT_ROOT)
+    except KeyError as e: raise HTTPException(404, str(e))
+    except ValueError as e: raise HTTPException(409, str(e))
 
 @app.post("/jobs", status_code=202)
 def enqueue_job(body: JobIn):

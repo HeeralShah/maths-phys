@@ -27,7 +27,7 @@ Commands below use the repository's existing Windows virtual environment and pac
 
 ### Backend unit tests
 
-The backend currently has seven standard-library unit tests covering durable revisions/checks, signoff selection, idempotent job requests, job transitions, stale-job recovery, and the unconfigured worker boundary.
+The backend suite covers source registration, complete edition publication, revisions and checks, signoff, Atlas application, saved graphs, protected exercises, problem sets and the optional SDK worker. Run the suite rather than relying on a cached test count.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s backend -p "test_*.py"
@@ -42,7 +42,7 @@ $env:MATHSPHYS_DB = "maths_phys.sqlite3"
 .\.venv\Scripts\python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
-The API stores a local SQLite database. Back it up with the service stopped. Do not commit the database.
+The API stores a local SQLite database. Use scripts/backup_restore.py for a validated database/vault/source backup; pause external vault editors while backing up. Do not commit runtime data.
 
 ### Frontend
 
@@ -60,3 +60,9 @@ npm run build
 ```
 
 The dev server binds to `127.0.0.1`. The app is still under development; the full study workflows and agent-backed jobs are not available yet.
+
+## Start studying
+
+Run `.\.venv\Scripts\python.exe scripts/run_local.py --open-browser` from the repository root. The current local database contains the prepared Sturm-Liouville edition, three source exercises and the evidence-linked paper-reading map. See [Getting started](docs/GETTING-STARTED.md) for the actual flows, backup commands and agent configuration boundary.
+
+The optional Claude adapter and skills are implemented; choosing the production harness and running paid evaluations are separate from installing/testing that adapter. No paid comparison result is claimed.

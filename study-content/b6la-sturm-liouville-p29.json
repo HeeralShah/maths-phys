@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "content_key": "b6la-pdf30-sturm-liouville-v1",
+  "prepared_by": "Luna",
+  "verification": "Prepared content and transcription checked against the rendered PDF page 30 (printed page 29), including the visible marginal marks. The adjacent pages were read to verify the section context.",
+  "source": {
+    "title": "B6La — Constrained variation of functionals, §7.1 Sturm-Liouville problem",
+    "metadata": {
+      "content_key": "b6la-pdf30-sturm-liouville-v1",
+      "source_file": "B6La.pdf",
+      "source_location": "C:/Users/heera/Dropbox/Academic Resources/B6La.pdf",
+      "pdf_page": 30,
+      "printed_page": 29,
+      "section": "7.1 Sturm-Liouville problem",
+      "preparation_status": "complete",
+      "prepared_by": "Luna",
+      "verification": "Visual inspection of rendered PDF page and adjacent pages; source notation and order checked."
+    }
+  },
+  "color_semantics": {
+    "green": "Unclear, error, or foreign reference; learner should revisit.",
+    "yellow": "Explanation or question attached to a passage.",
+    "blue": "Understood by the learner after a current check.",
+    "purple": "Exercise or problem marker."
+  },
+  "source_page_visual_annotations": {
+    "status": "imported_historical_unassessed",
+    "description": "The page shows blue check marks next to variation/eigenvalue and quotient derivations, yellow and green highlighting, red handwritten derivation notes and arrows, and a green handwritten boundary-condition note. Their original dates and intent are unknown; record visible colored marks as historical annotations, not current checks.",
+    "learner_mark_mapping": "Do not infer current green/yellow/blue/purple learner marks from the source ink colours."
+  },
+  "prerequisite_refresher": {
+    "title": "Refresher: first variation and integration by parts",
+    "content": "## Functionals from the preceding page\n\nThe page before this one defines the numerator functional\n\n$$\nF[y]=\\int_{\\alpha}^{\\beta}\\left(\\rho(x)\\,y'(x)^2+\\sigma(x)\\,y(x)^2\\right)\\,dx\n$$\n\nand the normalization functional\n\n$$\nG[y]=\\int_{\\alpha}^{\\beta}w(x)\\,y(x)^2\\,dx.\n$$\n\nThe Sturm–Liouville variational problem minimizes $F[y]$ subject to $G[y]=1$. The endpoint values of $y$ are fixed. Consequently an admissible variation $y_\\varepsilon=y+\\varepsilon\\eta$ obeys $\\eta(\\alpha)=\\eta(\\beta)=0$.\n\n## Why integration by parts gives the Euler–Lagrange equation\n\nFor a functional with density $f(x,y,y')$, its first variation is\n\n$$\n\\delta F=\\int_{\\alpha}^{\\beta}\\left(f_y\\,\\eta+f_{y'}\\,\\eta'\\right)\\,dx.\n$$\n\nIntegrating the $\\eta'$ term by parts gives\n\n$$\n\\delta F=\\int_{\\alpha}^{\\beta}\\left(f_y-\\frac{d}{dx}f_{y'}\\right)\\eta\\,dx+\\left[f_{y'}\\eta\\right]_{\\alpha}^{\\beta}.\n$$\n\nThe endpoint contribution vanishes here because the endpoint values are fixed, so $\\eta(\\alpha)=\\eta(\\beta)=0$. If the endpoints were free, that boundary term could not be discarded without an additional boundary condition. Since $\\eta$ is otherwise arbitrary, stationarity requires\n\n$$\nf_y-\\frac{d}{dx}f_{y'}=0.\n$$\n\nFor the quadratic derivative term, the specific integration-by-parts step is\n\n$$\n\\int_{\\alpha}^{\\beta}\\rho(x)y'(x)\\eta'(x)\\,dx=-\\int_{\\alpha}^{\\beta}\\bigl(\\rho(x)y'(x)\\bigr)'\\eta(x)\\,dx,\n$$\n\nwhere the omitted endpoint term is $[\\rho y'\\eta]_{\\alpha}^{\\beta}=0$ under the same fixed-endpoint condition.",
+    "scope": "Only prerequisites used by this page."
+  },
+  "sections": [
+    {
+      "title": "7.1 Sturm-Liouville problem — source page 29",
+      "ordinal": 0,
+      "metadata": {
+        "source_page": 30,
+        "printed_page": 29,
+        "edition_status": "complete"
+      },
+      "units": [
+        {
+          "title": "1. Vary the constrained quadratic functionals",
+          "ordinal": 0,
+          "metadata": {
+            "content_key": "b6la-pdf30-sturm-liouville-v1",
+            "source_page": 30,
+            "printed_page": 29,
+            "unit_kind": "source_and_explanation",
+            "source_order": 0,
+            "source_locator": "printed p. 29, from ‘Let’s consider separately…’ through equation (7.3)"
+          },
+          "content": "### Source text (faithful transcription)\n\nLet’s consider separately the variations of $F$ and $G$ with respect to a variation of $y(x)$:\n\n$$\n\\delta F = 2\\int_{\\alpha}^{\\beta}\\delta y\\{-(\\rho y')' + \\sigma y\\}\\,dx - 2[\\delta y\\,\\rho y']_{\\alpha}^{\\beta},\n$$\n\n$$\n\\delta G = 2\\int_{\\alpha}^{\\beta}\\delta y\\,w y\\,dx.\n$$\n\nThe boundary term in $\\delta F$ is zero because of the fixed-end boundary conditions, so\n\n$$\n\\frac{\\delta F}{\\delta y}=2\\mathcal{L}y,\\qquad \\frac{\\delta G}{\\delta y}=2wy,\n$$\n\nwhere $\\mathcal{L}$ is the differential operator\n\n$$\n\\mathcal{L}=-\\frac{d}{dx}\\left(\\rho(x)\\frac{d}{dx}\\right)+\\sigma(x).\n$$\n\nIn other words, $\\mathcal{L}y=-(\\rho y')'+\\sigma y$ for any (twice-differentiable) function $y$. The EL equation (7.2) is therefore\n\n$$\n(7.3)\\qquad \\mathcal{L}y=\\lambda w y.\n$$\n\nThis is an eigenvalue problem, with eigenvalue $\\lambda$. The function $w(x)$ is called a “weight function”. Many important ODEs are of Sturm-Liouville form, and one can find tables of the equations and their weight functions in texts on mathematical methods.\n\n### Why these variations give an eigenvalue equation\n\nThe derivative term is where the operator comes from. Varying $\\int\\rho(y')^2 dx$ produces $2\\int\\rho y'\\delta y' dx$; integration by parts moves the derivative off the variation and gives $-2\\int(\\rho y')'\\delta y dx$, plus endpoint contribution (sign correction below). The fixed endpoint values make $\\delta y=0$ there, so that term disappears. The non-derivative terms contribute $2\\sigma y$ and $2wy$. Substituting these functional derivatives into the constrained stationarity condition $\\delta F/\\delta y-\\lambda\\delta G/\\delta y=0$ yields $\\mathcal{L}y=\\lambda wy$.\n\n### Interpretation and assumptions\n\nThis is a weighted eigenproblem: $\\lambda$ is the eigenvalue, $y$ its eigenfunction, and multiplication by $w(x)$ weights the right side. The page assumes real coefficients, $\\rho,w>0$ in the open interval, and fixed endpoint values for $y$. The integration-by-parts expression is valid for sufficiently smooth $y$ (the page states twice differentiable).\n\n### Source-page markup and a sign check (yellow explanation)\n\nThe source page has handwritten derivation notes and colored marks. These are imported as historical source markup, not current learner checks; their dates are unknown. In the printed first-variation line above, the endpoint term is written with a minus sign: $-2[\\delta y\\,\\rho y']_{\\alpha}^{\\beta}$. Direct integration by parts gives a plus sign, $+2[\\delta y\\,\\rho y']_{\\alpha}^{\\beta}$, because $\\int 2\\rho y'\\delta y' dx=2[\\rho y'\\delta y]_{\\alpha}^{\\beta}-2\\int(\\rho y')'\\delta y dx$. The discrepancy does not change the functional derivative or equation (7.3), since $\\delta y=0$ at both fixed endpoints and the boundary term vanishes either way.",
+          "annotations": [
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, first variation of F",
+              "mark": "blue",
+              "detail": "Visible blue check mark beside the variation formula for δF; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, first variation of G",
+              "mark": "blue",
+              "detail": "Visible blue check mark beside the variation formula for δG; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, equation (7.3)",
+              "mark": "blue",
+              "detail": "Visible blue check mark beside equation (7.3), Ly=λwy; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, λG=∫yLy dx=F−[ρyy′]",
+              "mark": "blue",
+              "detail": "Visible blue check mark beside the integration-by-parts argument; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, δΛ/δy",
+              "mark": "blue",
+              "detail": "Visible blue check mark beside the quotient variation; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, lowest eigenvalue discussion",
+              "mark": "yellow",
+              "detail": "Visible yellow highlight on the claim about σ(x)>0 and F≥0; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, final paragraph",
+              "mark": "yellow",
+              "detail": "Visible yellow highlight on the conclusion that the minimum of Λ is the lowest Sturm-Liouville eigenvalue; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, integration-by-parts argument",
+              "mark": "green",
+              "detail": "Visible green highlight on the statement that the boundary term vanishes; historical source-page mark, not a current check."
+            },
+            {
+              "original_date": null,
+              "source_locator": "printed p. 29, right margin beside boundary-term discussion",
+              "mark": "green",
+              "detail": "Visible green handwritten note that boundary conditions must be chosen so the boundary term vanishes; historical source-page mark, not a current check."
+            }
+          ]
+        },
+        {
+          "title": "2. The lowest eigenvalue as a minimum quotient",
+          "ordinal": 1,
+          "metadata": {
+            "content_key": "b6la-pdf30-sturm-liouville-v1",
+            "source_page": 30,
+            "printed_page": 29,
+            "unit_kind": "source_and_explanation",
+            "source_order": 1,
+            "source_locator": "printed p. 29, from ‘If the function σ(x)…’ through ‘lowest SL eigenvalue’"
+          },
+          "content": "### Source text (faithful transcription)\n\nIf the function $\\sigma(x)$ is positive then $F\\geq 0$, so its minimum is positive. Its minimum value is the lowest eigenvalue of the associated Sturm-Liouville eigenvalue problem. This can be seen as follows. Multiply both sides of (7.3) by $y$ and integrate to get\n\n$$\n\\lambda G=\\int_{\\alpha}^{\\beta}y\\mathcal{L}y\\,dx=F-[\\rho y y']_{\\alpha}^{\\beta},\n$$\n\nwhere the second equality comes from an integration by parts. The boundary term is zero, so $\\lambda=F/G\\geq 0$. The original problem is equivalent to the problem of minimising $F/G$ because the scale fixed by the normalization constraint drops out of this ratio, so the lowest eigenvalue will be the minimum of $F/G$.\n\n### Derivation, one step at a time\n\nStart with $\\mathcal{L}y=\\lambda wy$, multiply pointwise by $y$, and integrate: $\\int y\\mathcal{L}y\\,dx=\\lambda\\int wy^2 dx=\\lambda G$. For the left side,\n\n$$\n\\int y[-(\\rho y')'+\\sigma y]dx = -[\\rho yy']_{\\alpha}^{\\beta}+\\int\\rho(y')^2dx+\\int\\sigma y^2dx = F-[\\rho yy']_{\\alpha}^{\\beta}.\n$$\n\nFixed endpoint values do not, by themselves, imply $y(\\alpha)=y(\\beta)=0$. The boundary term vanishes here because the admissible eigenfunctions satisfy homogeneous endpoint conditions (as the source page’s handwritten note also points out). Under those boundary conditions, $\\lambda=F/G$. Since $G=1$ is a normalization, rescaling a nonzero trial function changes $F$ and $G$ by the same factor $c^2$; it does not change $F/G$. Thus minimizing the constrained $F$ is equivalent to minimizing this quotient.\n\n### Intuition and assumptions\n\nThe quotient is a weighted energy per weighted squared amplitude. Its stationary values are eigenvalues, and its minimum over admissible functions is the lowest eigenvalue. For nonzero $y$ with $w>0$, $G>0$. The claim of strict positivity requires the positivity assumptions stated on the page: in particular $\\sigma>0$ together with $\\rho>0$, and admissible nonzero functions. Boundary conditions must remove the boundary contribution; arbitrary fixed nonzero endpoint values would not generally make $[\\rho yy']$ vanish."
+        },
+        {
+          "title": "3. Vary the quotient directly",
+          "ordinal": 2,
+          "metadata": {
+            "content_key": "b6la-pdf30-sturm-liouville-v1",
+            "source_page": 30,
+            "printed_page": 29,
+            "unit_kind": "source_and_explanation",
+            "source_order": 2,
+            "source_locator": "printed p. 29, from ‘Notice that F/G…’ to end of printed page"
+          },
+          "content": "### Source text (faithful transcription)\n\nNotice that $F/G$ is not a functional of the type considered so far because it is a ratio of definite integrals. Nevertheless, it is still a functional. We can solve the problem directly by minimising $\\Lambda=F/G$ without constraint. The functional $\\Lambda[y]$ is stationary when\n\n$$\n0=\\frac{\\delta\\Lambda}{\\delta y}=\\frac{1}{G}\\left[\\frac{\\delta F[y]}{\\delta y(x)}-\\frac{F}{G}\\frac{\\delta G[y]}{\\delta y(x)}\\right]=\\frac{2}{G}[\\mathcal{L}y-\\Lambda wy],\n$$\n\nso the values of $\\Lambda$ at its stationary points are the Sturm-Liouville eigenvalues, and the minimum value of $\\Lambda$ is the lowest SL eigenvalue, in agreement with the conclusion above deduced using the Lagrange multiplier method.\n\n### Quotient-rule derivation\n\nVary $\\Lambda=F/G$ as an ordinary ratio, remembering that both numerator and denominator depend on the function: $\\delta(F/G)=(G\\,\\delta F-F\\,\\delta G)/G^2$. Divide by $\\delta y(x)$ and use $\\delta F/\\delta y=2\\mathcal{L}y$ and $\\delta G/\\delta y=2wy$. Since $F/G=\\Lambda$, this becomes $\\delta\\Lambda/\\delta y=(2/G)(\\mathcal{L}y-\\Lambda wy)$. A stationary function therefore solves the same eigenvalue equation with eigenvalue $\\Lambda$.\n\n### What the two arguments each establish\n\nThe multiplier method starts from the normalization constraint and identifies stationary constrained functions. The quotient method removes the irrelevant overall scale and reaches the same equation directly. Together they show that the quotient’s stationary values are eigenvalues; the variational minimum selects the lowest one, subject to the stated admissibility and boundary conditions. This is a variational characterization, not a claim that every eigenfunction minimizes the quotient.\n\n### Source exercises\n\nNo exercise or problem appears on this source page. No exercise or solution has been added to this edition."
+        }
+      ]
+    }
+  ],
+  "complete": true
+}

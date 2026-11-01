@@ -4,22 +4,23 @@ Status: application foundation is in development. Every v1 capability below is i
 
 ## Current implementation snapshot
 
-### Implemented foundations
+### Working local workflows
 
-- Backend SQLite schema and FastAPI adapter cover source metadata/outlines, immutable saved revisions, dated manual checks, section signoff records, and explicit prepare/revise/signoff job requests.
-- Section signoff snapshots only units whose latest revision is currently marked understood.
-- Job records include status transitions, stable IDs, caller idempotency keys, atomic claiming primitives, and recovery of stale running leases.
-- Reads and manual checks do not enqueue jobs. Source registration stores metadata/outline only; it does not upload or process source content.
-- Twelve backend tests are present in `backend/test_store.py`. The documented command is `python -m unittest discover -s backend -p "test_*.py"` from the repository root.
+- Register existing local PDFs, select physical pages explicitly, inspect their original page images and text, and import complete prepared editions atomically. Publication retains source references and annotations.
+- Study saved Markdown/LaTeX units with expandable explanations, coloured marks, dated understanding checks, clarification requests and explicit refresh.
+- Edit a durable learning profile; search/read the canonical Obsidian vault.
+- Browse saved evidence-linked research graphs, source exercises, protected assistance, dated attempts and ordered practice sets. These interactions perform no model calls.
+- Apply prepared Atlas synthesis plans from checked signoff snapshots using optimistic hashes, a recovery journal and idempotency. The optional configured worker performs synthesis after signoff without another approval step.
+- Run the local launcher, create validated database/vault/PDF backups, and restore only into an empty destination. Backup/restore reject unfinished Atlas journals.
+- The current machine has the real B6La Sturm-Liouville edition (refresher plus three units), three ClassicalDynamicsI source exercises and Keshav's evidence-linked reading-method map. These are prepared content, not claimed SDK benchmark outputs.
 
-### Not implemented or not operational
+### Agent integration and remaining limits
 
-- The worker is unconfigured. Queued jobs are durable, but no agent generation, revision, or synthesis executes; the stub refuses to mark a job complete without a real worker.
-- Source parsing, faithful rendered reading editions, generated edition publication, chat-driven revision plus refresh, and end-to-end signoff synthesis are not complete workflows.
-- Saved evidence-linked research graph CRUD and source-exercise catalogue/reveal foundations now exist. Agent-driven research/extraction, full problem attempt tracking, backup/restore, and the full annotation/refresher experience remain incomplete.
-- The frontend scaffold is in development; do not infer that a visible shell means its linked v1 workflows are operational.
-
-The snapshot reflects repository code and test inventory; milestone checkboxes below remain open until the full acceptance criteria are evidenced.
+- The optional Claude Agent SDK worker, six study skills and local tools are implemented. SDK 0.2.176/MCP 2.3.0 import and option construction were checked without model calls. Provider choice remains provisional and no paid comparison is claimed.
+- Codex has a read-only readiness probe and opt-in bounded trial runner; subscription billing controls require verification before trial execution. The app-server trial is not a completed benchmark.
+- Live provider-generated preparation/revision/research and full source-to-Atlas quality acceptance still need configured provider access and evaluation. Gemini comparison remains pending.
+- Full cross-device solution-key recovery remains a limitation: Windows DPAPI solutions require the same user profile. Backup archives are not encrypted containers; protect them as private study data.
+- Milestone checkboxes below reflect full acceptance, not the mere presence of an endpoint. Do not infer all v1 requirements are complete from this snapshot.
 
 ## M0 — Decisions and local project skeleton
 
@@ -127,3 +128,18 @@ Existing vault ID was repointed to `vault/` with Obsidian stopped and the global
 ### Remaining verification
 
 Browser interaction verification was attempted but unavailable through the current UI provider. API smoke and TypeScript/Vite build passed; full visual QA remains open. Backup/restore implementation remains open; no backup feature is claimed.
+
+## Functional build-out verification — 2026-11-01
+
+- Tests cover complete publication, historical vs generated annotations, source provenance, material vs formatting revisions, signoff plan validation/recovery, learner profile, protected attempts/sets and adapter orchestration without paid calls. Final test counts are recorded in the delivery commit.
+- Actual local imports are idempotent. Original source PDFs remain outside Git; plaintext exercise-assistance packages are kept only in ignored local state.
+- Backup verification includes a real vault/database/PDF round trip and regression tests that reject absolute recovery journals, corrupt payloads and existing destinations.
+- The private Git records executable workflows, skills, content explanations, decision history and operational guides. Runtime databases and provider credentials remain excluded.
+
+## Verified delivery checkpoint
+
+- 2026-11-01: 37 backend tests and 7 backup/restore tests pass. `pip check` reports no broken installed requirements.
+- Frontend TypeScript/Vite build passes. Headless Edge walkthrough against an isolated API/database passed: rendered equations, expandable explanations and coloured annotation, decoded PDF image, dated check, persistent profile, vault wikilink navigation, ordered practice-set creation, dated attempt, local hint reveal with no job, and graph evidence opening the correct PDF page; zero browser page errors.
+- Real local app restarted through `scripts/run_local.py`; the B6La source now has four prepared units and the updated display-math/prerequisite refresher. Three real Coriolis source questions and the 19-node/18-edge reading-method map are present in private local state. No current learner checks were created on the real data during testing.
+- SDK import/dependency and option checks succeeded without a model request. Claude adapter is provisional; Codex probe is read-only; no benchmark winner or live generation quality is asserted.
+- The source exercise assistance package is excluded from Git to preserve spoiler protection; restore the private backup to move its prepared material to another machine.

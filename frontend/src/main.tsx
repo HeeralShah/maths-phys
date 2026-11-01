@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
@@ -17,29 +17,89 @@ type Evidence = { id: string; source_id: string; locator: string; quote: string;
 type GraphNode = { id: string; source_id: string; node_type: string; label: string; claim: string; metadata: Record<string, unknown>; evidence: Evidence[] }
 type GraphEdge = { id: string; from_id: string; to_id: string; relation: string; claim: string; metadata: Record<string, unknown>; evidence: Evidence[] }
 type Problem = { id: string; source_id: string; prompt: string; placement: string; placement_ref?: string; subject: string; prerequisites: { problem_id?: string; label?: string }[]; novelty: string; combination: string; workload: string; provenance: Record<string, unknown>; experience: string; difficulty?: { assessment: string; reason: string } | null }
+type SourcePage = { source_id: string; page_number: number; page_count: number; text: string; image_base64?: string | null; image_mime?: string | null }
+type VaultHit = { path: string; title: string; snippet: string }
+type Attempt = { id: string; response: string; outcome: string; details?: string; created_at: string }
+type ProblemSet = { id:string; title:string; description:string; problem_ids?:string[]; problems?:Problem[]; members?:Problem[]; created_at?:string }
+type LearnerProfile = { goals:string; assumed_knowledge:string[]; misconceptions:string[]; preferred_explanations:string; preferences:Record<string,unknown>; notes:string; updated_at?:string|null }
+
+function foldEditionSections(annotations: {color:string;text:string}[] = []) {
+  return () => (tree: { children?: any[] }) => {
+    const highlight=(nodes:any[])=>nodes.flatMap(node=>{
+      if(node.type==='text'&&node.value) {
+        for(const mark of annotations) {
+          const at=node.value.indexOf(mark.text)
+          if(at<0) continue
+          return [...(at?[{...node,value:node.value.slice(0,at)}]:[]),{type:'element',tagName:'mark',properties:{className:[`annotation-${mark.color}`]},children:[{type:'text',value:mark.text}]},...(at+mark.text.length<node.value.length?[{...node,value:node.value.slice(at+mark.text.length)}]:[])]
+        }
+      }
+      if(node.children) node.children=highlight(node.children)
+      return [node]
+    })
+    const children=highlight(tree.children||[])
+    tree.children=children
+    for(let i=0;i<children.length;i++) {
+      const heading=children[i]
+      if(heading.type!=='element'||!/^h[23]$/.test(heading.tagName)) continue
+      const depth=Number(heading.tagName.slice(1)), title=plainText(heading)
+      let end=i+1
+      while(end<children.length) {
+        const next=children[end]
+        if(next.type==='element'&&/^h[1-6]$/.test(next.tagName)&&Number(next.tagName.slice(1))<=depth) break
+        end++
+      }
+      const content=children.slice(i+1,end)
+      const colour=['green','yellow','blue','purple'].find(c=>title.toLowerCase().includes(c))
+      children.splice(i,end-i,{type:'element',tagName:'details',properties:{className:['edition-section',...(colour?[`annotation-${colour}`]:[])],...(title.toLowerCase().includes('source text')?{open:true}:{})},children:[{type:'element',tagName:'summary',properties:{},children:heading.children||[]},...content]})
+    }
+  }
+}
+function plainText(node: any): string { return node.type==='text'?node.value||'':(node.children||[]).map(plainText).join('') }
+function annotationData(checks: Check[]): {color:string;text:string}[] {
+  return checks.filter(c=>c.check_type==='annotation').flatMap(c=>{try{const value=JSON.parse(c.detail);return value.text&&value.color?[{text:String(value.text),color:String(value.color)}]:[]}catch{return []}})
+}
+function remarkWikiLinks() {
+  return (tree:any)=>{const visit=(node:any)=>{if(!Array.isArray(node.children))return;node.children=node.children.flatMap((child:any)=>{if(child.type!=='text'||!child.value.includes('[[')) {visit(child);return [child]}const out:any[]=[];let cursor=0;const pattern=/\[\[([^\]]+)\]\]/g;let match:RegExpExecArray|null;while((match=pattern.exec(child.value))){if(match.index>cursor)out.push({type:'text',value:child.value.slice(cursor,match.index)});const [target,label]=match[1].split('|',2);out.push({type:'link',url:`vaultnote:${encodeURIComponent(target.trim())}`,children:[{type:'text',value:(label||target).trim()}]});cursor=match.index+match[0].length}if(cursor===0)return [child];if(cursor<child.value.length)out.push({type:'text',value:child.value.slice(cursor)});return out});};visit(tree)}
+}
+function slugText(value:any):string { if(Array.isArray(value))return value.map(slugText).join('');if(typeof value==='string')return value;if(typeof value==='number')return String(value);return value?.props?.children?slugText(value.props.children):'' }
+function headingSlug(value:any):string{return slugText(value).toLowerCase().trim().replace(/[^\p{L}\p{N}\s-]/gu,'').replace(/\s+/g,'-')}
+function pageFromLocator(locator:string,fallback=0):number {const match=locator.match(/(?:physical\s+(?:pdf\s+)?page|source\s+page|PDF\s+p\.?|\bpage\s+|\bp\.?\s*)(\d+)/i);return Number(match?.[1]||fallback||0)}
 const hintLevels = ['orientation', 'small_hint', 'strong_hint', 'partial_solution', 'full_solution'] as const
 type HintLevel = typeof hintLevels[number]
 
 const defaultApi = '/api'
 const stamp = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
+function parsePages(selection: string): number[] {
+  const pages: number[] = []
+  for (const part of selection.split(/[;,\s]+/).filter(Boolean)) {
+    const range = part.match(/^(\d+)\s*[-–]\s*(\d+)$/)
+    if (range) {
+      const start=Number(range[1]), end=Number(range[2])
+      if (end < start || end-start > 49) throw new Error('Page ranges must be forward and no longer than 50 pages')
+      for(let page=start;page<=end;page++) pages.push(page)
+    } else if (/^\d+$/.test(part)) pages.push(Number(part))
+    else throw new Error(`Could not read page selection “${part}”`)
+  }
+  return [...new Set(pages)]
+}
+
 function App() {
-  const [api, setApi] = useState(() => localStorage.getItem('mathsphys-api') || defaultApi)
+  const api = defaultApi
   const [view, setView] = useState<View>('library')
   const [source, setSource] = useState<Source | null>(null)
-  const [sourceId, setSourceId] = useState('')
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
   const [edition, setEdition] = useState<Edition>(null)
   const [checks, setChecks] = useState<Check[]>([])
   const [content, setContent] = useState('')
   const [actor, setActor] = useState('')
+  const [signoffIntent,setSignoffIntent]=useState('')
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [apiConnected, setApiConnected] = useState<boolean | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [sourceTitle, setSourceTitle] = useState('')
-  const [outline, setOutline] = useState('[{"title":"Chapter 1","units":[{"title":"First concept"}]}]')
   const [sources, setSources] = useState<Pick<Source, 'id'|'title'|'metadata'|'created_at'>[]>([])
   const [graphSource, setGraphSource] = useState('')
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([])
@@ -48,9 +108,32 @@ function App() {
   const [selectedEdge, setSelectedEdge] = useState<GraphEdge | null>(null)
   const [problemSource, setProblemSource] = useState('')
   const [problemQuery, setProblemQuery] = useState('')
+  const [problemSubject, setProblemSubject] = useState('')
+  const [problemWorkload, setProblemWorkload] = useState('')
   const [problems, setProblems] = useState<Problem[]>([])
   const [revealed, setRevealed] = useState<Record<string, Partial<Record<HintLevel, string>>>>({})
   const [clarification, setClarification] = useState('')
+  const [localPdfPath, setLocalPdfPath] = useState('')
+  const [pageSelection, setPageSelection] = useState('')
+  const [pagePreview, setPagePreview] = useState<SourcePage | null>(null)
+  const [vaultQuery, setVaultQuery] = useState('')
+  const [vaultHits, setVaultHits] = useState<VaultHit[]>([])
+  const [vaultNote, setVaultNote] = useState<{path:string; content:string} | null>(null)
+  const [vaultAnchor, setVaultAnchor] = useState('')
+  const [attemptDraft, setAttemptDraft] = useState<Record<string,string>>({})
+  const [attempts, setAttempts] = useState<Record<string,Attempt[]>>({})
+  const [profile, setProfile] = useState<LearnerProfile>({goals:'',assumed_knowledge:[],misconceptions:[],preferred_explanations:'',preferences:{},notes:''})
+  const [profileKnown, setProfileKnown] = useState('')
+  const [profileMisconceptions, setProfileMisconceptions] = useState('')
+  const [profilePreferences, setProfilePreferences] = useState('{}')
+  const [profileMessage, setProfileMessage] = useState('Loading local profile…')
+  const [pagePreviewBusy, setPagePreviewBusy] = useState(false)
+  const [pagePreviewError, setPagePreviewError] = useState('')
+  const [problemSets, setProblemSets] = useState<ProblemSet[]>([])
+  const [problemSetTitle, setProblemSetTitle] = useState('')
+  const [problemSetDescription, setProblemSetDescription] = useState('')
+  const [problemSetIds, setProblemSetIds] = useState<string[]>([])
+  const [activeProblemSet, setActiveProblemSet] = useState('')
   const unitLoadSequence = useRef(0)
 
   const request = useCallback(async <T,>(path: string, init?: RequestInit): Promise<T> => {
@@ -70,16 +153,20 @@ function App() {
     try { setJobs(await request<Job[]>('/jobs')); setApiConnected(true) } catch { setApiConnected(false) }
   }, [request])
 
-  useEffect(() => { localStorage.setItem('mathsphys-api', api) }, [api])
   useEffect(() => { void refreshJobs(); const timer = window.setInterval(() => void refreshJobs(), 5000); return () => window.clearInterval(timer) }, [refreshJobs])
+  useEffect(() => { void request<LearnerProfile>('/profile').then(p=>{setProfile(p);setProfileKnown(p.assumed_knowledge.join('\n'));setProfileMisconceptions(p.misconceptions.join('\n'));setProfilePreferences(JSON.stringify(p.preferences,null,2));setProfileMessage(p.updated_at?`Saved ${new Date(p.updated_at).toLocaleDateString()}`:'No learner profile saved yet')}).catch(()=>setProfileMessage('Profile service unavailable')) }, [request])
   useEffect(() => { void request<typeof sources>('/sources').then(items => { setSources(items); if (items.length) { setGraphSource(v => v || items[0].id); setProblemSource(v => v || items[0].id) } }).catch(() => setSources([])) }, [request])
   useEffect(() => { if (view !== 'graph') return; setSelectedNode(null); setSelectedEdge(null); void request<{nodes: GraphNode[]; edges: GraphEdge[]}>(`/research/graph${graphSource ? `?source_id=${encodeURIComponent(graphSource)}` : ''}`).then(data => { setGraphNodes(data.nodes); setGraphEdges(data.edges) }).catch(e => { setGraphNodes([]); setGraphEdges([]); setError(e instanceof Error ? e.message : 'Unable to load graph') }) }, [view, graphSource, request])
-  useEffect(() => { if (view !== 'problems') return; const params = new URLSearchParams(); if (problemSource) params.set('source_id', problemSource); if (problemQuery.trim()) params.set('q', problemQuery.trim()); void request<Problem[]>(`/problems?${params}`).then(setProblems).catch(e => { setProblems([]); setError(e instanceof Error ? e.message : 'Unable to load problems') }) }, [view, problemSource, problemQuery, request])
+  useEffect(() => { if (view !== 'problems') return; const params = new URLSearchParams(); if (problemSource) params.set('source_id', problemSource); if (problemQuery.trim()) params.set('q', problemQuery.trim()); void request<Problem[]>(`/problems?${params}`).then(async rows=>{setProblems(rows); const pairs=await Promise.all(rows.map(async p=>[p.id,await request<Attempt[]>(`/problems/${p.id}/attempts`).catch(()=>[])] as const)); setAttempts(Object.fromEntries(pairs))}).catch(e => { setProblems([]); setError(e instanceof Error ? e.message : 'Unable to load problems') }) }, [view, problemSource, problemQuery, request])
+  useEffect(() => {if(view!=='problems')return;void request<ProblemSet[]>('/problem-sets').then(setProblemSets).catch(()=>setProblemSets([]))},[view,request])
+  useEffect(() => { if (view !== 'library' || !vaultQuery.trim()) { setVaultHits([]); return }; const t=window.setTimeout(()=>void request<VaultHit[]>(`/vault/search?q=${encodeURIComponent(vaultQuery.trim())}`).then(setVaultHits).catch(()=>setVaultHits([])),180); return ()=>window.clearTimeout(t) }, [view,vaultQuery,request])
+  useEffect(()=>{if(!vaultNote||!vaultAnchor)return;const id=headingSlug(vaultAnchor);window.requestAnimationFrame(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}))},[vaultNote,vaultAnchor])
 
   const activeSection = useMemo(() => source?.sections.find(s => s.units.some(u => u.id === selectedUnit?.id)) ?? null, [source, selectedUnit])
   const understandingChecks = checks.filter(c => c.check_type === 'understood')
   const understood = understandingChecks.length ? understandingChecks[understandingChecks.length - 1].passed : null
   const latestJob = jobs[jobs.length - 1]
+  const editionAnnotations = annotationData(checks)
 
   async function perform(action: () => Promise<void>) {
     setError(''); setMessage(''); setLoading(true)
@@ -89,22 +176,79 @@ function App() {
   async function openSource(id: string) {
     await perform(async () => {
       const loaded = await request<Source>(`/sources/${encodeURIComponent(id.trim())}`)
-      setSource(loaded); setSourceId(loaded.id); setSelectedUnit(null); setEdition(null); setChecks([]); setContent('')
-      setView('reader'); setMessage('Source outline loaded. Source registration stores metadata and an outline; it does not ingest or extract PDF content.')
+      setSource(loaded); setSelectedUnit(null); setEdition(null); setChecks([]); setContent(''); setPagePreview(null)
+      setView('reader'); setMessage('Source opened. Choose a section to continue studying.')
     })
   }
 
-  async function registerSource() {
+  async function registerPdf() {
     await perform(async () => {
-      const sections = JSON.parse(outline)
-      const created = await request<Source>('/sources', { method: 'POST', body: JSON.stringify({ title: sourceTitle, metadata: { source_type: 'manual', note: 'Metadata and outline only; source content not ingested.' }, sections }) })
-      setSource(created); setSourceId(created.id); setView('reader'); setMessage('Source metadata and outline registered. No source content was ingested.')
+      const created = await request<Source>('/sources/register-file', { method: 'POST', body: JSON.stringify({ path: localPdfPath.trim(), title: sourceTitle.trim() || localPdfPath.split(/[\\/]/).pop() || 'Local PDF' }) })
+      setSources(items => [created, ...items.filter(s => s.id !== created.id)])
+      setSource(created); setPageSelection(''); setPagePreview(null); setSelectedUnit(null); setEdition(null); setChecks([]); setView('reader');
+      setMessage(`Registered ${created.title}. Choose pages and explicitly prepare a saved edition when ready.`)
     })
+  }
+
+  async function loadVaultNote(path: string) {
+    await perform(async()=>{ const note=await request<{path:string;content:string}>(`/vault/notes/${path.split('/').map(encodeURIComponent).join('/')}`); setVaultAnchor('');setVaultNote(note) })
+  }
+
+  async function openWikiLink(href:string) {
+    await perform(async()=>{const raw=decodeURIComponent(href.slice('vaultnote:'.length));const [target,anchor]=raw.split('#',2);let paths:string[]=[];if(!target&&vaultNote)paths=[vaultNote.path];else {const candidate=target.endsWith('.md')?target:`${target}.md`;if(vaultNote&&!target.includes('/'))paths.push(`${vaultNote.path.split('/').slice(0,-1).join('/')}/${candidate}`);paths.push(candidate,target)}let note:{path:string;content:string}|null=null;for(const path of [...new Set(paths)]){try{note=await request<{path:string;content:string}>(`/vault/notes/${path.split('/').filter(Boolean).map(encodeURIComponent).join('/')}`);break}catch{}}if(!note){const query=target.split('/').pop()?.replace(/\.md$/i,'')||target;const hits=await request<VaultHit[]>(`/vault/search?q=${encodeURIComponent(query)}`);const match=hits.find(h=>h.title.toLowerCase()===query.toLowerCase()||h.path.toLowerCase().endsWith(`/${query.toLowerCase()}.md`));if(!match)throw new Error(`No vault note found for “${target}”`);note=await request<{path:string;content:string}>(`/vault/notes/${match.path.split('/').map(encodeURIComponent).join('/')}`)}setVaultNote(note);setVaultAnchor(anchor||'')})
+  }
+
+  async function saveProfile() {
+    await perform(async()=>{let preferences:Record<string,unknown>;try{preferences=JSON.parse(profilePreferences);if(!preferences||Array.isArray(preferences)||typeof preferences!=='object')throw new Error()}catch{throw new Error('Preferences must be a JSON object, for example {"equation_detail":"show steps"}')};const body={goals:profile.goals,assumed_knowledge:profileKnown.split('\n').map(x=>x.trim()).filter(Boolean),misconceptions:profileMisconceptions.split('\n').map(x=>x.trim()).filter(Boolean),preferred_explanations:profile.preferred_explanations,preferences,notes:profile.notes};const saved=await request<LearnerProfile>('/profile',{method:'PUT',body:JSON.stringify(body)});setProfile(saved);setProfileKnown(saved.assumed_knowledge.join('\n'));setProfileMisconceptions(saved.misconceptions.join('\n'));setProfilePreferences(JSON.stringify(saved.preferences,null,2));setProfileMessage(`Saved ${new Date(saved.updated_at||Date.now()).toLocaleDateString()}`);setMessage('Learner profile saved locally.')})
+  }
+
+  async function loadPagePreview(page:number, sourceOverride?:Source) {
+    setPagePreviewBusy(true);setPagePreviewError('')
+    try { const target=sourceOverride||source;if(!target)throw new Error('Choose a source first');setPagePreview(await request<SourcePage>(`/sources/${target.id}/pages/${page}`)) }
+    catch(e){setPagePreview(null);setPagePreviewError(e instanceof Error?e.message:'Unable to load this source page')}
+    finally {setPagePreviewBusy(false)}
+  }
+
+  async function previewSourcePage() {
+    const page=Number(pageSelection); if(!Number.isInteger(page)||page<1){setPagePreviewError('Enter a valid physical PDF page number');return} await loadPagePreview(page)
+  }
+
+  async function logAttempt(problem: Problem) {
+    await perform(async()=>{ const response=(attemptDraft[problem.id]||'').trim(); if(!response) throw new Error('Write your attempt before logging it'); await request(`/problems/${problem.id}/attempts`,{method:'POST',body:JSON.stringify({response,outcome:'attempted'})}); setAttemptDraft(v=>({...v,[problem.id]:''})); const rows=await request<Attempt[]>(`/problems/${problem.id}/attempts`); setAttempts(v=>({...v,[problem.id]:rows})); setMessage('Attempt saved.') })
+  }
+
+  async function saveProblemSet() {
+    await perform(async()=>{if(!problemSetTitle.trim())throw new Error('Name this problem set');if(!problemSetIds.length)throw new Error('Choose at least one problem');const body={title:problemSetTitle.trim(),description:problemSetDescription.trim(),problem_ids:problemSetIds};const saved=await request<ProblemSet>(activeProblemSet?`/problem-sets/${activeProblemSet}`:'/problem-sets',{method:activeProblemSet?'PUT':'POST',body:JSON.stringify(body)});setActiveProblemSet(saved.id);setProblemSets(old=>[saved,...old.filter(s=>s.id!==saved.id)]);setMessage(`Saved problem set “${saved.title}”.`)})
+  }
+
+  function moveProblemInSet(index:number, direction:-1|1) {
+    setProblemSetIds(ids=>{const next=[...ids],target=index+direction;if(target<0||target>=next.length)return ids;[next[index],next[target]]=[next[target],next[index]];return next})
+  }
+
+  async function openProblemSet(id:string) {
+    await perform(async()=>{const saved=await request<ProblemSet>(`/problem-sets/${id}`);setActiveProblemSet(saved.id);setProblemSetTitle(saved.title);setProblemSetDescription(saved.description);setProblemSetIds(saved.problem_ids||saved.problems?.map(p=>p.id)||saved.members?.map(p=>p.id)||[]);setProblemSource('');setProblemQuery('');setProblemSubject('');setProblemWorkload('');setMessage(`Loaded “${saved.title}” into the set editor.`)})
+  }
+
+  async function markSelection(color: 'green'|'yellow'|'blue'|'purple') {
+    await perform(async()=>{if(!edition)throw new Error('Select a saved edition first');const selected=window.getSelection()?.toString().trim();if(!selected)throw new Error('Select a passage in the edition before marking it');const mark=await request<Check>(`/revisions/${edition.id}/checks`,{method:'POST',body:JSON.stringify({check_type:'annotation',passed:true,detail:JSON.stringify({color,text:selected})})});setChecks(old=>[...old,mark])})
+  }
+
+  async function openProblemSource(problem: Problem) {
+    await perform(async()=>{const loaded=await request<Source>(`/sources/${problem.source_id}`);setSource(loaded);setSelectedUnit(null);setEdition(null);setChecks([]);setView('reader');const page=pageFromLocator(String(problem.provenance.locator||''),Number((loaded.metadata as Record<string,unknown>).pdf_page||0));setPageSelection(page?String(page):'');if(page)await loadPagePreview(page,loaded)})
+  }
+
+  async function openEvidence(evidence:Evidence) {
+    await perform(async()=>{const loaded=await request<Source>(`/sources/${evidence.source_id}`);setSource(loaded);setSelectedUnit(null);setEdition(null);setChecks([]);setContent('');setView('reader');const page=pageFromLocator(evidence.locator,Number((loaded.metadata as Record<string,unknown>).pdf_page||0));if(page){setPageSelection(String(page));await loadPagePreview(page,loaded)}})
   }
 
   async function selectUnit(unit: Unit) {
     const sequence = ++unitLoadSequence.current
     setSelectedUnit(unit); setEdition(null); setChecks([]); setContent(''); setError('')
+    const sourcePage=Number(unit.metadata?.source_page||(source?.metadata as Record<string,unknown>|undefined)?.pdf_page||0)
+    if(sourcePage && source?.metadata && (source.metadata as Record<string,unknown>).local_file) {
+      setPageSelection(String(sourcePage))
+      void loadPagePreview(sourcePage)
+    }
     try {
       const data = await request<Edition>(`/units/${unit.id}/edition`)
       if (sequence !== unitLoadSequence.current) return
@@ -138,6 +282,10 @@ function App() {
         if (!selectedUnit) throw new Error('Choose a unit to revise')
         const saved = edition && content === edition.content ? edition : await saveEdition()
         entityId = selectedUnit.id; payload = { source_id: source.id, unit_id: selectedUnit.id, revision_id: saved.id, clarification: clarification.trim() }
+      } else {
+        const pages=parsePages(pageSelection)
+        if (!pages.length || pages.some(p=>!Number.isInteger(p)||p<1)) throw new Error('Enter the physical PDF page numbers to prepare, for example 12 or 13–15')
+        payload = { source_id: source.id, pages }
       }
       const job = await request<Job>('/jobs', { method: 'POST', body: JSON.stringify({ job_type: jobType, entity_id: entityId, idempotency_key: stamp(), payload }) })
       setMessage(`${jobType === 'prepare' ? 'Prepare' : 'Revise'} job queued (${job.status}). This UI does not call a model.`); await refreshJobs()
@@ -147,7 +295,7 @@ function App() {
   async function signoffSection(section: Section) {
     await perform(async () => {
       if (!actor.trim()) throw new Error('Enter your name or initials for the section sign-off')
-      const job = await request<Job>(`/sections/${section.id}/signoffs`, { method: 'POST', body: JSON.stringify({ actor, scope: '', idempotency_key: stamp() }) })
+      const job = await request<Job>(`/sections/${section.id}/signoffs`, { method: 'POST', body: JSON.stringify({ actor, scope: '', intent:signoffIntent.trim(), idempotency_key: stamp() }) })
       setMessage(`Section sign-off recorded; follow-up job ${job.status}. The backend includes only each unit’s latest edition marked understood.`); await refreshJobs()
     })
   }
@@ -163,44 +311,49 @@ function App() {
     </aside>
 
     <main className="main-area">
-      <header className="topbar"><div className="crumb">Workspace <span>/</span> {view === 'graph' ? 'Research graph' : view === 'problems' ? 'Source problems' : view === 'reader' ? 'Reader' : 'Library'}</div><span className={`api-state ${apiConnected === true ? 'online' : apiConnected === false ? 'offline' : ''}`}><i/>{apiConnected === true ? 'Connected' : apiConnected === false ? 'API offline' : 'Connecting'}</span><label className="api-field"><span>API</span><input aria-label="Backend API address" value={api} onChange={e => setApi(e.target.value)} /></label><button className="avatar" title="Local session">L</button></header>
+      <header className="topbar"><div className="crumb">Workspace <span>/</span> {view === 'graph' ? 'Research graph' : view === 'problems' ? 'Source problems' : view === 'reader' ? 'Reader' : 'Library'}</div><span className={`api-state ${apiConnected === true ? 'online' : apiConnected === false ? 'offline' : ''}`}><i/>{apiConnected === true ? 'Connected' : apiConnected === false ? 'API offline' : 'Connecting'}</span><button className="avatar" title="Local session">L</button></header>
       <div className="content">
         {error && <div className="toast error">{error}<button onClick={() => setError('')}>×</button></div>}
         {message && <div className="toast success">{message}<button onClick={() => setMessage('')}>×</button></div>}
         {view === 'library' && <>
           <div className="page-heading"><div><div className="eyebrow">YOUR STUDY DESK <span className="live-dot"/></div><h1>Good work starts<br/>with a clear source.</h1><p className="subhead">Keep source context close, build a saved study edition, and sign off when you understand it.</p></div><div className="heading-note"><span>✳</span><p>Thoughtful study,<br/>one unit at a time.</p></div></div>
-          <div className="section-title"><div><h2>Open a source</h2><p>Load an outline already registered in the local study service.</p></div><span className="eyebrow muted">LIBRARY · 01</span></div>
-          <div className="open-source card"><div className="source-glyph">⌕</div><div className="grow"><label className="field-label" htmlFor="source-id">SOURCE ID</label><input id="source-id" value={sourceId} onChange={e => setSourceId(e.target.value)} placeholder="Paste a source ID" onKeyDown={e => e.key === 'Enter' && void openSource(sourceId)} /></div><button className="button dark" onClick={() => void openSource(sourceId)} disabled={loading || !sourceId.trim()}>Open source <span>↗</span></button></div>
+          <div className="section-title"><div><h2>Your source library</h2><p>Open a saved source or add a PDF by its local file path.</p></div><span className="eyebrow muted">{sources.length} SOURCES</span></div>
+          {sources.length ? <div className="source-library">{sources.map(item=><button key={item.id} className={`source-library-card ${source?.id===item.id?'selected':''}`} onClick={()=>void openSource(item.id)}><span className="source-glyph">▤</span><span className="grow"><b>{item.title}</b><small>{String((item.metadata as Record<string,unknown>)?.source_type||'Saved source')} · added {new Date(item.created_at).toLocaleDateString()}</small></span><span className="library-open">Open →</span></button>)}</div> : <div className="empty-outline">Your library is empty. Add a local PDF below.</div>}
           <div className="register-grid">
-            <div className="section-title register-title"><div><h2>Register source metadata</h2><p>Create a local source record and outline.</p></div></div>
-            <div className="card register-card"><div className="field-row"><div className="grow"><label className="field-label">SOURCE TITLE</label><input value={sourceTitle} onChange={e => setSourceTitle(e.target.value)} placeholder="e.g. Classical Mechanics — lecture notes" /></div><button className="button ochre" onClick={() => void registerSource()} disabled={loading || !sourceTitle.trim()}>Register source</button></div><label className="field-label outline-label">OUTLINE JSON <span>sections with nested units</span></label><textarea className="outline-input" value={outline} onChange={e => setOutline(e.target.value)} spellCheck={false}/><div className="fine-print"><span>ⓘ</span> Registration stores metadata and outline only. It does not read or ingest a PDF.</div></div>
+            <div className="section-title register-title"><div><h2>Add a PDF source</h2><p>Register a local file without starting preparation.</p></div></div>
+            <div className="card register-card"><div className="field-row"><div className="grow"><label className="field-label">SOURCE TITLE <span className="optional">OPTIONAL</span></label><input value={sourceTitle} onChange={e => setSourceTitle(e.target.value)} placeholder="e.g. Classical Mechanics — lecture notes" /></div></div><div className="field-row path-row"><div className="grow"><label className="field-label">LOCAL PDF PATH</label><input value={localPdfPath} onChange={e=>setLocalPdfPath(e.target.value)} placeholder="C:\\Users\\you\\Documents\\lecture-notes.pdf" /></div><button className="button ochre" onClick={()=>void registerPdf()} disabled={loading||!localPdfPath.trim()}>Add PDF <span>↗</span></button></div><div className="fine-print"><span>ⓘ</span> Adding a file only registers its location and page count. Preparation starts only when you select pages and press Prepare.</div></div>
           </div>
+          <details className="profile-card card"><summary><div><div className="eyebrow">LOCAL STUDY SETTINGS</div><h2>Learner profile</h2><p>Starting knowledge, goals, and explanation preferences.</p></div><span>{profileMessage} · Edit</span></summary><div className="profile-fields"><label>STUDY GOALS<textarea value={profile.goals} onChange={e=>setProfile(v=>({...v,goals:e.target.value}))} placeholder="What are you working towards?"/></label><label>PREFERRED EXPLANATIONS<textarea value={profile.preferred_explanations} onChange={e=>setProfile(v=>({...v,preferred_explanations:e.target.value}))} placeholder="For example: derive formulas step by step; define new notation."/></label><label>ASSUMED KNOWLEDGE <small>One topic per line</small><textarea value={profileKnown} onChange={e=>setProfileKnown(e.target.value)} placeholder="Linear algebra\nOrdinary differential equations"/></label><label>MISCONCEPTIONS TO WATCH <small>One per line</small><textarea value={profileMisconceptions} onChange={e=>setProfileMisconceptions(e.target.value)} placeholder="Add anything you want explanations to check carefully."/></label><label>NOTES<textarea value={profile.notes} onChange={e=>setProfile(v=>({...v,notes:e.target.value}))} placeholder="Other durable context for your study sessions."/></label><label>PREFERENCES JSON<textarea className="profile-json" value={profilePreferences} onChange={e=>setProfilePreferences(e.target.value)} spellCheck={false}/></label></div><div className="profile-footer"><small>Saved on this device. Used as context only when you explicitly start generation.</small><button className="button dark small" disabled={loading} onClick={()=>void saveProfile()}>Save learner profile</button></div></details>
+          <section className="vault-library"><div className="section-title"><div><h2>Obsidian notes</h2><p>Search and read canonical notes in your existing vault.</p></div></div><input className="vault-search" aria-label="Search vault notes" placeholder="Search concepts, titles, or phrases…" value={vaultQuery} onChange={e=>setVaultQuery(e.target.value)}/>{vaultHits.length>0&&<div className="vault-results">{vaultHits.map(hit=><button key={hit.path} onClick={()=>void loadVaultNote(hit.path)}><b>{hit.title}</b><small>{hit.path}</small><span>{hit.snippet}</span></button>)}</div>}{vaultNote&&<article className="vault-note card"><div className="pane-caption">{vaultNote.path}<button onClick={()=>setVaultNote(null)}>Close ×</button></div><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkMath,remarkWikiLinks]} rehypePlugins={[rehypeKatex]} urlTransform={url=>url.startsWith('vaultnote:')?url:defaultUrlTransform(url)} components={{a:({href,children})=>href?.startsWith('vaultnote:')?<button className="wikilink" onClick={()=>void openWikiLink(href)}>{children}</button>:<a href={href}>{children}</a>,h1:({children})=><h1 id={headingSlug(children)}>{children}</h1>,h2:({children})=><h2 id={headingSlug(children)}>{children}</h2>,h3:({children})=><h3 id={headingSlug(children)}>{children}</h3>,h4:({children})=><h4 id={headingSlug(children)}>{children}</h4>}}>{vaultNote.content}</ReactMarkdown></div></article>}</section>
           <section className="workflow-strip"><div className="flow-step"><span>01</span><div><b>Choose</b><small>Pick a source and unit</small></div></div><i>→</i><div className="flow-step"><span>02</span><div><b>Study</b><small>Save your own edition</small></div></div><i>→</i><div className="flow-step"><span>03</span><div><b>Sign off</b><small>Record understanding</small></div></div></section>
           <JobShelf job={latestJob} onRefresh={() => void refreshJobs()} />
         </>}
 
         {view === 'reader' && <>
           <div className="reader-heading"><div><div className="eyebrow">SOURCE READER</div><h1>{source?.title || 'Choose a source'}</h1><p className="subhead">Select a unit to open its latest saved edition.</p></div><button className="button outline" onClick={() => setView('library')}>← Library</button></div>
-          {!source ? <div className="empty-card card"><span>⌕</span><h3>No source loaded</h3><p>Open a registered source by ID from your Library.</p><button className="button dark" onClick={() => setView('library')}>Go to Library</button></div> : <div className="reader-layout">
+          {!source ? <div className="empty-card card"><span>⌕</span><h3>No source loaded</h3><p>Choose a source from your Library.</p><button className="button dark" onClick={() => setView('library')}>Go to Library</button></div> : <>
+          {(source.metadata as Record<string,unknown>)?.local_file && <section className="source-preparation card"><div><div className="eyebrow">SOURCE PAGES</div><h2>Prepare a saved study edition</h2><p>Choose physical PDF pages. Preview is local and read-only; preparation starts only when you press the button.</p></div><div className="page-tools"><label className="filter-field">PHYSICAL PAGES<input value={pageSelection} onChange={e=>setPageSelection(e.target.value)} placeholder="e.g. 12 or 13–15" /></label><button className="button soft" onClick={()=>void previewSourcePage()} disabled={!pageSelection||loading}>Preview page</button><button className="button ochre" onClick={()=>void queueJob('prepare')} disabled={loading||!pageSelection}>Prepare selected pages ↗</button></div>{(pagePreviewBusy||pagePreviewError)&&<div className={`page-preview-status ${pagePreviewError?'error':''}`} role="status">{pagePreviewBusy?'Rendering the selected source page…':pagePreviewError}</div>}{pagePreview&&!selectedUnit&&<div className="pdf-preview"><div className="pane-caption">PDF PAGE {pagePreview.page_number} OF {pagePreview.page_count}<button onClick={()=>setPagePreview(null)}>Close ×</button></div><div className="pdf-preview-grid">{pagePreview.image_base64&&<img alt={`PDF page ${pagePreview.page_number}`} src={`data:${pagePreview.image_mime||'image/png'};base64,${pagePreview.image_base64}`}/>}<pre>{pagePreview.text}</pre></div></div>}</section>}
+          <div className={`reader-layout ${pagePreview && selectedUnit ? 'with-page' : ''}`}>
             <aside className="outline-pane"><div className="pane-caption">TABLE OF CONTENTS <span>{source.sections.reduce((n, s) => n + s.units.length, 0)} units</span></div>{source.sections.map((section, i) => <div className="outline-section" key={section.id}><div className="outline-section-title"><span>{String(i + 1).padStart(2, '0')}</span>{section.title}</div>{section.units.map(unit => <button key={unit.id} className={`unit-link ${selectedUnit?.id === unit.id ? 'selected' : ''}`} onClick={() => void selectUnit(unit)}><span className="unit-dot"/>{unit.title}<span className="unit-check">{selectedUnit?.id === unit.id && understood === true ? '✓' : ''}</span></button>)}</div>)}{source.sections.length === 0 && <div className="empty-outline">This source has no sections yet.</div>}
-              <div className="source-meta"><span>SOURCE RECORD</span><code>{source.id.slice(0, 8)}…</code><small>{new Date(source.created_at).toLocaleDateString()}</small></div>
+              <div className="source-meta"><span>SOURCE RECORD</span><code>{String((source.metadata as Record<string,unknown>).source_type||'Saved source')}</code><small>{new Date(source.created_at).toLocaleDateString()}</small></div>
             </aside>
             <section className="edition-pane">{!selectedUnit ? <div className="empty-edition"><div className="empty-icon">✳</div><h2>A quieter place to think.</h2><p>Choose a unit in the outline. Your writing is saved as an immutable edition so you can return to what you knew at each point.</p></div> : <>
               <div className="edition-topline"><span>{activeSection?.title || 'UNIT'}</span><span>·</span><span>{edition ? `EDITION ${edition.revision}` : 'NO SAVED EDITION'}</span><span className="draft-pill">{edition ? 'Saved edition' : 'New draft'}</span></div>
               <h2 className="unit-title">{selectedUnit.title}</h2>
-              <div className="editor-card"><div className="editor-toolbar"><span>YOUR STUDY EDITION</span><span>Markdown and math preview</span></div><textarea className="edition-editor" value={content} onChange={e => setContent(e.target.value)} placeholder={'Write an explanation in your own words…\n\nUse equations, examples, and source references as needed.'}/><div className="edition-preview"><div className="preview-label">PREVIEW</div><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content || '_Your rendered edition will appear here._'}</ReactMarkdown></div><div className="editor-foot"><span>{edition ? `Last saved ${new Date(edition.created_at).toLocaleString()}` : 'Not saved yet'}</span><button className="button dark small" disabled={loading} onClick={() => void perform(async () => { await saveEdition() })}>Save edition <span>↗</span></button></div></div>
-              <div className="review-card"><div className="review-copy"><span className={`status-icon ${understood === true ? 'good' : understood === false ? 'revisit' : ''}`}>{understood === true ? '✓' : understood === false ? '↻' : '○'}</span><div><b>{understood === true ? 'You marked this understood' : understood === false ? 'Marked for another pass' : 'Ready for a self-check?'}</b><small>Check records against the current text, saving a new edition first if you changed it.</small></div></div><div className="review-actions"><button className="button soft" disabled={loading} onClick={() => void recordUnderstanding(false)}>Revisit</button><button className="button green" disabled={loading} onClick={() => void recordUnderstanding(true)}>I understand <span>✓</span></button></div></div>
-              <div className="signoff-card"><div><div className="eyebrow">SECTION SIGN-OFF</div><h3>{activeSection?.title || 'Current section'}</h3><p>The service includes only units whose latest saved edition is marked understood.</p></div><div className="signoff-controls"><label><span>YOUR NAME / INITIALS</span><input value={actor} onChange={e => setActor(e.target.value)} placeholder="Enter to sign off" /></label><button className="button ochre" disabled={loading || !activeSection || !actor.trim()} onClick={() => activeSection && void signoffSection(activeSection)}>Sign off section ↗</button></div></div>
+              <div className="editor-card"><div className="editor-toolbar"><span>SAVED STUDY EDITION</span><span>Original notation · Markdown and math</span></div><div className="edition-preview study-edition"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex,foldEditionSections(editionAnnotations)]}>{content || '_A complete saved edition will appear here after preparation._'}</ReactMarkdown></div><details className="edition-edit"><summary>Edit personal study notes</summary><textarea className="edition-editor" value={content} onChange={e => setContent(e.target.value)} placeholder={'Add your own explanation or annotations…'} /><div className="edition-preview"><div className="preview-label">PREVIEW</div><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content || '_Your rendered notes will appear here._'}</ReactMarkdown></div><div className="editor-foot"><span>{edition ? `Saved ${new Date(edition.created_at).toLocaleString()}` : 'Not saved yet'}</span><button className="button dark small" disabled={loading} onClick={() => void perform(async () => { await saveEdition() })}>Save notes ↗</button></div></details></div>
+              <div className="annotation-tools"><span>Select a passage, then mark it</span><button className="mark green-mark" onClick={()=>void markSelection('green')}>Green · unclear</button><button className="mark yellow-mark" onClick={()=>void markSelection('yellow')}>Yellow · explain</button><button className="mark blue-mark" onClick={()=>void markSelection('blue')}>Blue · understood</button><button className="mark purple-mark" onClick={()=>void markSelection('purple')}>Purple · exercise</button></div>{checks.filter(c=>c.check_type==='annotation').map(c=>{let data:{color?:string;text?:string}={};try{data=JSON.parse(c.detail)}catch{}return <blockquote key={c.id} className={`saved-annotation ${data.color||''}`}><span>{data.color||'marked'} · {new Date(c.created_at).toLocaleDateString()}</span><p>{data.text||c.detail}</p></blockquote>})}
+              <div className="review-card"><div className="review-copy"><span className={`status-icon ${understood === true ? 'good' : understood === false ? 'revisit' : ''}`}>{understood === true ? '✓' : understood === false ? '↻' : '○'}</span><div><b>{understood === true ? 'You marked this understood' : understood === false ? 'Marked for another pass' : 'Ready for a self-check?'}</b><small>{understandingChecks.length?`Initial check recorded ${new Date(understandingChecks[understandingChecks.length-1].created_at).toLocaleDateString()}.`:'Initial check only; later recall uses the one page refresher.'}</small></div></div><div className="review-actions"><button className="button soft" disabled={loading} onClick={() => void recordUnderstanding(false)}>Revisit</button><button className="button green" disabled={loading} onClick={() => void recordUnderstanding(true)}>I understand <span>✓</span></button></div></div>
+              <div className="signoff-card"><div><div className="eyebrow">SECTION SIGN-OFF</div><h3>{activeSection?.title || 'Current section'}</h3><p>The service includes only units whose latest saved edition is marked understood.</p></div><div className="signoff-controls"><label><span>YOUR NAME / INITIALS</span><input value={actor} onChange={e => setActor(e.target.value)} placeholder="Enter to sign off" /></label><label><span>EDIT INTENT (OPTIONAL)</span><input maxLength={300} value={signoffIntent} onChange={e=>setSignoffIntent(e.target.value)} placeholder="e.g. add the checked boundary argument"/></label><button className="button ochre" disabled={loading || !activeSection || !actor.trim()} onClick={() => activeSection && void signoffSection(activeSection)}>Sign off section ↗</button></div></div>
               <div className="clarification-card"><label className="field-label" htmlFor="clarification">ASK FOR A CLARIFICATION</label><textarea id="clarification" value={clarification} onChange={e => setClarification(e.target.value)} placeholder="What should the next edition explain differently?"/><button className="button ochre" onClick={() => void queueJob('revise')} disabled={loading || !edition || !clarification.trim()}>Submit clarification and queue revision ↗</button><p>Submitting queues a revision job. When it finishes, use Refresh edition to load the new saved revision.</p></div>
               <div className="edition-actions"><button onClick={() => void queueJob('prepare')} disabled={loading || !source}>Prepare edition <span>↗</span></button><button onClick={() => selectedUnit && void perform(async () => { const next = await request<Edition>(`/units/${selectedUnit.id}/edition`); setEdition(next); setContent(next?.content || ''); if (next) setChecks(await request<Check[]>(`/revisions/${next.id}/checks`)); setMessage('Displayed edition refreshed; current checks are loaded for this revision.') })} disabled={loading || !selectedUnit}>Refresh edition <span>↻</span></button></div>
               <p className="action-note">These buttons enqueue explicit jobs. They do not trigger model calls from this interface.</p>
               <JobShelf job={latestJob} onRefresh={() => void refreshJobs()} />
-            </>}</section>
-          </div>}
+            </>}</section>{pagePreview&&selectedUnit&&<aside className="source-context-pane card"><div className="pane-caption">SOURCE REFRESHER · PHYSICAL PAGE {pagePreview.page_number}<button onClick={()=>setPagePreview(null)}>Close ×</button></div>{pagePreview.image_base64&&<img alt={`Source PDF page ${pagePreview.page_number}`} src={`data:${pagePreview.image_mime||'image/png'};base64,${pagePreview.image_base64}`}/>}<details><summary>Extracted page text</summary><pre>{pagePreview.text}</pre></details><p>Original source page for comparison. Your study marks remain separate from imported source markup.</p></aside>}
+          </div></>}
         </>}
 
-        {view === 'graph' && <section className="research-page"><div className="research-heading"><div><div className="eyebrow">SOURCE-LINKED RESEARCH</div><h1>Research graph</h1><p className="subhead">Browse saved claims and evidence. Opening the graph is local and read-only.</p></div><label className="filter-field">SOURCE<select value={graphSource} onChange={e => setGraphSource(e.target.value)}><option value="">All sources</option>{sources.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}</select></label></div>{graphNodes.length === 0 ? <div className="empty-card card"><h3>No saved graph nodes</h3><p>There is no graph data for this selection yet.</p></div> : <div className="graph-layout"><div className="graph-canvas"><svg viewBox={`0 0 800 ${Math.max(470,Math.ceil(graphNodes.length/4)*180+60)}`} role="img" aria-label="Saved evidence graph">{graphEdges.map(edge => { const a=graphNodes.findIndex(n=>n.id===edge.from_id), b=graphNodes.findIndex(n=>n.id===edge.to_id); if(a<0||b<0)return null; const pos=(i:number)=>({x:100+(i%4)*195,y:90+Math.floor(i/4)*180}); const p=pos(a),q=pos(b); return <g key={edge.id} onClick={()=>{setSelectedNode(null);setSelectedEdge(edge)}} className="edge-hit" role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&setSelectedEdge(edge)}><line x1={p.x} y1={p.y} x2={q.x} y2={q.y} className="edge-hitline"/><line x1={p.x} y1={p.y} x2={q.x} y2={q.y} className="graph-edge"/><text x={(p.x+q.x)/2} y={(p.y+q.y)/2-7} className="edge-label">{edge.relation}</text></g>})}{graphNodes.map((node,i)=>{const x=100+(i%4)*195,y=90+Math.floor(i/4)*180; return <g key={node.id} onClick={()=>{setSelectedNode(node);setSelectedEdge(null)}} className={`graph-node ${selectedNode?.id===node.id?'chosen':''}`} role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&setSelectedNode(node)}><circle cx={x} cy={y} r="42"/><text x={x} y={y-4} textAnchor="middle">{node.label.slice(0,22)}</text><text x={x} y={y+13} textAnchor="middle" className="node-type">{node.node_type}</text></g>})}</svg></div><aside className="evidence-panel"><div className="eyebrow">{selectedEdge?'RELATION EVIDENCE':selectedNode?'CLAIM & EVIDENCE':'SELECT A NODE OR EDGE'}</div>{selectedNode?<><h2>{selectedNode.label}</h2><p>{selectedNode.claim}</p>{selectedNode.evidence.map(ev=><EvidenceCard key={ev.id} evidence={ev}/>)}</>:selectedEdge?<><h2>{selectedEdge.relation}</h2><p>{selectedEdge.claim}</p>{selectedEdge.evidence.map(ev=><EvidenceCard key={ev.id} evidence={ev}/>)}</>:<p>Choose a saved node or relation to inspect its evidence.</p>}</aside></div>}</section>}
-        {view === 'problems' && <section className="research-page"><div className="research-heading"><div><div className="eyebrow">SOURCE-ONLY PRACTICE</div><h1>Problem library</h1><p className="subhead">Browse problems linked to sources. Assistance appears only after you choose a level.</p></div><div className="problem-filters"><label className="filter-field">SOURCE<select value={problemSource} onChange={e=>setProblemSource(e.target.value)}><option value="">All sources</option>{sources.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}</select></label><input aria-label="Search problems" placeholder="Filter problem text" value={problemQuery} onChange={e=>setProblemQuery(e.target.value)}/></div></div>{problems.length===0?<div className="empty-card card"><h3>No source problems found</h3><p>Try another source or filter.</p></div>:<div className="problem-list">{problems.map(p=><article className="problem-card" key={p.id}><div className="problem-meta"><span>{p.placement.replace('_',' ')}</span><span>{p.subject}</span><span>Novelty · {p.novelty}</span><span>Workload · {p.workload}</span></div><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{p.prompt}</ReactMarkdown></div><div className="problem-details"><span>Ideas: {p.combination}</span><span>Experience: {p.experience}</span>{p.difficulty&&<span>Difficulty: {p.difficulty.assessment} — {p.difficulty.reason}</span>}<span>Prerequisites: {p.prerequisites.map(x=>x.label||x.problem_id).join(', ')||'None listed'}</span></div><details className="provenance"><summary>Source provenance</summary><EvidenceCard evidence={{id:p.id,source_id:p.source_id,locator:String(p.provenance.locator||''),quote:String(p.provenance.quote||''),source_ref:String(p.provenance.source_ref||'')}}/></details><div className="hint-controls"><span>REVEAL ONE ASSISTANCE LEVEL</span>{hintLevels.map(level=><button key={level} className="button soft" disabled={loading||!!revealed[p.id]?.[level]} onClick={()=>void perform(async()=>{const result=await request<{problem_id:string;level:HintLevel;content:string}>(`/problems/${p.id}/reveal`,{method:'POST',body:JSON.stringify({level})});setRevealed(old=>({...old,[p.id]:{...old[p.id],[result.level]:result.content}}))})}>{level.replace('_',' ')}</button>)}</div>{hintLevels.filter(level=>revealed[p.id]?.[level]).map(level=><section className="revealed-hint" key={level}><b>{level.replace('_',' ')}</b><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{revealed[p.id]?.[level]||''}</ReactMarkdown></div></section>)}</article>)}</div>}</section>}
+        {view === 'graph' && <section className="research-page"><div className="research-heading"><div><div className="eyebrow">SOURCE-LINKED RESEARCH</div><h1>Research graph</h1><p className="subhead">Browse saved claims and evidence. Opening the graph is local and read-only.</p></div><label className="filter-field">SOURCE<select value={graphSource} onChange={e => setGraphSource(e.target.value)}><option value="">All sources</option>{sources.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}</select></label></div>{graphNodes.length === 0 ? <div className="empty-card card"><h3>No saved graph nodes</h3><p>There is no graph data for this selection yet.</p></div> : <div className="graph-layout"><div className="graph-canvas"><svg viewBox={`0 0 800 ${Math.max(470,Math.ceil(graphNodes.length/4)*180+60)}`} role="img" aria-label="Saved evidence graph">{graphEdges.map(edge => { const a=graphNodes.findIndex(n=>n.id===edge.from_id), b=graphNodes.findIndex(n=>n.id===edge.to_id); if(a<0||b<0)return null; const pos=(i:number)=>({x:100+(i%4)*195,y:90+Math.floor(i/4)*180}); const p=pos(a),q=pos(b); return <g key={edge.id} onClick={()=>{setSelectedNode(null);setSelectedEdge(edge)}} className="edge-hit" role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&setSelectedEdge(edge)}><line x1={p.x} y1={p.y} x2={q.x} y2={q.y} className="edge-hitline"/><line x1={p.x} y1={p.y} x2={q.x} y2={q.y} className="graph-edge"/><text x={(p.x+q.x)/2} y={(p.y+q.y)/2-7} className="edge-label">{edge.relation}</text></g>})}{graphNodes.map((node,i)=>{const x=100+(i%4)*195,y=90+Math.floor(i/4)*180; return <g key={node.id} onClick={()=>{setSelectedNode(node);setSelectedEdge(null)}} className={`graph-node ${selectedNode?.id===node.id?'chosen':''}`} role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&setSelectedNode(node)}><circle cx={x} cy={y} r="42"/><text x={x} y={y-4} textAnchor="middle">{node.label.slice(0,22)}</text><text x={x} y={y+13} textAnchor="middle" className="node-type">{node.node_type}</text></g>})}</svg></div><aside className="evidence-panel"><div className="eyebrow">{selectedEdge?'RELATION EVIDENCE':selectedNode?'CLAIM & EVIDENCE':'SELECT A NODE OR EDGE'}</div>{selectedNode?<><h2>{selectedNode.label}</h2><p>{selectedNode.claim}</p>{selectedNode.evidence.map(ev=><EvidenceCard key={ev.id} evidence={ev} onOpen={openEvidence}/>)}</>:selectedEdge?<><h2>{selectedEdge.relation}</h2><p>{selectedEdge.claim}</p>{selectedEdge.evidence.map(ev=><EvidenceCard key={ev.id} evidence={ev} onOpen={openEvidence}/>)}</>:<p>Choose a saved node or relation to inspect its evidence.</p>}</aside></div>}</section>}
+        {view === 'problems' && <section className="research-page"><div className="research-heading"><div><div className="eyebrow">SOURCE-ONLY PRACTICE</div><h1>Problem library</h1><p className="subhead">Browse problems linked to sources. Assistance appears only after you choose a level.</p></div><div className="problem-filters"><label className="filter-field">SOURCE<select value={problemSource} onChange={e=>setProblemSource(e.target.value)}><option value="">All sources</option>{sources.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}</select></label><input aria-label="Search problems" placeholder="Filter problem text" value={problemQuery} onChange={e=>setProblemQuery(e.target.value)}/><select aria-label="Filter by subject" value={problemSubject} onChange={e=>setProblemSubject(e.target.value)}><option value="">All subjects</option>{Array.from(new Set(problems.map(p=>p.subject))).map(x=><option key={x}>{x}</option>)}</select><select aria-label="Filter by workload" value={problemWorkload} onChange={e=>setProblemWorkload(e.target.value)}><option value="">All workloads</option>{Array.from(new Set(problems.map(p=>p.workload))).map(x=><option key={x}>{x}</option>)}</select></div></div><div className="problem-set-builder card"><div className="section-title"><div><h2>Problem sets</h2><p>Assemble a deliberate practice sequence from source problems.</p></div></div><div className="problem-set-fields"><input aria-label="Problem set name" value={problemSetTitle} onChange={e=>setProblemSetTitle(e.target.value)} placeholder="Set name"/><input aria-label="Problem set description" value={problemSetDescription} onChange={e=>setProblemSetDescription(e.target.value)} placeholder="Optional note about the ideas to practise"/><button className="button dark small" disabled={loading} onClick={()=>void saveProblemSet()}>{activeProblemSet?'Update set':'Save set'} · {problemSetIds.length}</button>{activeProblemSet&&<button className="button soft small" onClick={()=>{setActiveProblemSet('');setProblemSetTitle('');setProblemSetDescription('');setProblemSetIds([])}}>New set</button>}</div>{problemSetIds.length>0&&<ol className="problem-set-order">{problemSetIds.map((id,index)=><li key={id}><span>{problems.find(p=>p.id===id)?.prompt.slice(0,90)||'Selected source problem'}</span><button aria-label={`Move item ${index+1} up`} disabled={index===0} onClick={()=>moveProblemInSet(index,-1)}>↑</button><button aria-label={`Move item ${index+1} down`} disabled={index===problemSetIds.length-1} onClick={()=>moveProblemInSet(index,1)}>↓</button></li>)}</ol>}{problemSets.length>0&&<div className="saved-sets"><span>SAVED SETS</span>{problemSets.map(s=><button className={activeProblemSet===s.id?'active':''} key={s.id} onClick={()=>void openProblemSet(s.id)}>{s.title}<small>{s.problem_ids?.length||0} problems</small></button>)}</div>}</div>{problems.length===0?<div className="empty-card card"><h3>No source problems found</h3><p>Try another source or filter.</p></div>:<div className="problem-list">{problems.filter(p=>(!problemSubject||p.subject===problemSubject)&&(!problemWorkload||p.workload===problemWorkload)).map(p=><article className="problem-card" key={p.id}><label className="problem-set-check"><input type="checkbox" checked={problemSetIds.includes(p.id)} onChange={e=>setProblemSetIds(ids=>e.target.checked?[...ids,p.id]:ids.filter(id=>id!==p.id))}/> Add to practice set</label><div className="problem-meta"><span>{p.placement.replace('_',' ')}</span><span>{p.subject}</span><span>Novelty · {p.novelty}</span><span>Workload · {p.workload}</span></div><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{p.prompt}</ReactMarkdown></div><div className="problem-details"><span>Ideas: {p.combination}</span><span>Experience: {p.experience}</span>{p.difficulty&&<span>Difficulty: {p.difficulty.assessment} — {p.difficulty.reason}</span>}<span>Prerequisites: {p.prerequisites.map(x=>x.label||x.problem_id).join(', ')||'None listed'}</span></div><details className="provenance"><summary>Source page and provenance</summary><EvidenceCard evidence={{id:p.id,source_id:p.source_id,locator:String(p.provenance.locator||''),quote:String(p.provenance.quote||''),source_ref:String(p.provenance.source_ref||'')}} onOpen={openEvidence}/><button className="source-page-link" onClick={()=>void openProblemSource(p)}>Open source refresher ↗</button></details><section className="attempt-box"><label className="field-label">YOUR ATTEMPT</label><textarea value={attemptDraft[p.id]||''} onChange={e=>setAttemptDraft(v=>({...v,[p.id]:e.target.value}))} placeholder="Work through it here first. Your attempt is saved with today's date."/><button className="button dark small" disabled={loading||!(attemptDraft[p.id]||'').trim()} onClick={()=>void logAttempt(p)}>Save attempt</button>{(attempts[p.id]||[]).length>0&&<details className="attempt-history"><summary>{attempts[p.id].length} saved attempt{attempts[p.id].length===1?'':'s'}</summary>{attempts[p.id].map(a=><div className="attempt-entry" key={a.id}><time>{new Date(a.created_at).toLocaleDateString()}</time><p>{a.response}</p></div>)}</details>}</section><div className="hint-controls"><span>REVEAL ONE ASSISTANCE LEVEL</span>{hintLevels.map(level=><button key={level} className="button soft" disabled={loading||!!revealed[p.id]?.[level]} onClick={()=>void perform(async()=>{if(level==='full_solution'&&!window.confirm('Reveal the full solution for this problem?'))return;const result=await request<{problem_id:string;level:HintLevel;content:string}>(`/problems/${p.id}/reveal`,{method:'POST',body:JSON.stringify({level})});setRevealed(old=>({...old,[p.id]:{...old[p.id],[result.level]:result.content}}))})}>{level.replace('_',' ')}</button>)}</div>{hintLevels.filter(level=>revealed[p.id]?.[level]).map(level=><section className="revealed-hint" key={level}><b>{level.replace('_',' ')}</b><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{revealed[p.id]?.[level]||''}</ReactMarkdown></div></section>)}</article>)}</div>}</section>}
       </div>
     </main>
   </div>
@@ -210,8 +363,8 @@ function JobShelf({ job, onRefresh }: { job?: Job; onRefresh: () => void }) {
   return <section className="job-shelf"><div className="job-heading"><div><div className="eyebrow">BACKGROUND WORK</div><b>Job status</b></div><button onClick={onRefresh} aria-label="Refresh job status">↻</button></div>{job ? <div className="job-row"><span className={`job-status ${job.status}`}>{job.status}</span><b>{job.job_type}</b><code>{job.id.slice(0, 8)}…</code><small>{new Date(job.updated_at).toLocaleTimeString()}</small></div> : <p>No jobs recorded yet.</p>}<small className="job-footnote">Status refreshes every 5 seconds. Queued jobs remain queued until a worker is separately installed and configured.</small></section>
 }
 
-function EvidenceCard({ evidence }: { evidence: Evidence }) {
-  return <blockquote className="evidence-card"><p>{evidence.quote || 'No quoted passage saved.'}</p><footer>{evidence.locator || 'Location not recorded'}{evidence.source_ref ? ` · ${evidence.source_ref}` : ''}<code>{evidence.source_id.slice(0,8)}…</code></footer></blockquote>
+function EvidenceCard({ evidence, onOpen }: { evidence: Evidence; onOpen?: (evidence:Evidence)=>void }) {
+  return <blockquote className="evidence-card"><p>{evidence.quote || 'No quoted passage saved.'}</p><footer>{evidence.locator || 'Location not recorded'}{evidence.source_ref ? ` · ${evidence.source_ref}` : ''}<code>{evidence.source_id.slice(0,8)}…</code>{onOpen&&<button onClick={()=>onOpen(evidence)}>Open source page ↗</button>}</footer></blockquote>
 }
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)

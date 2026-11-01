@@ -51,3 +51,12 @@ The controlled comparison must use the same three cases for each candidate SDK:
 - `ClassicalDynamicsI`, page 5.
 
 No benchmark has been run. Do not describe any SDK as selected or any score as observed until the protocol is run and results recorded.
+
+## Implementation defaults adopted during the authorised build
+
+- The Obsidian vault lives at `vault/`; application files live outside it. Existing vault identity and content were preserved.
+- Initial source intake supports local PDFs; canonical notes remain Markdown. The app stores registered paths and source hashes rather than copying originals into Git.
+- Windows full solutions use current-user DPAPI; other platforms use a private Fernet key. Backups preserve relevant data but do not create portable Windows DPAPI keys.
+- Backup destinations are user-specified ZIP archives with SHA-256 manifests, consistent SQLite snapshots and source-path rebinding on restore. Active Atlas journals are refused; external vault editors should be paused.
+- Claude is an optional provisional adapter, not the selected winner of a comparison. Native Codex app-server access is probed separately. No provider-generated benchmark result has been recorded.
+- Subsection signoff itself authorises synthesis and application of a valid checked-only plan; no extra per-note review gate is introduced.
