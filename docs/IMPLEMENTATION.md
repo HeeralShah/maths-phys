@@ -1,6 +1,6 @@
 # Implementation tracker
 
-Status: application foundation is in development. Every v1 capability below is in scope; milestones are a build sequence, not a deferral list. The snapshot below distinguishes working foundations from product behavior that is still absent. No SDK trial is claimed here.
+Status: the local application has working study, source-exercise, literature, sign-off and Atlas workflows; the current branch adds a complete-edition contract, a Google ADK/Agent Runtime boundary, and development-only reader/graph design prototypes. Every v1 capability below is in scope. Milestone checkboxes describe product acceptance and are not inferred from endpoints or prototypes. No live model generation or SDK trial is claimed.
 
 ## Current implementation snapshot
 
@@ -16,9 +16,9 @@ Status: application foundation is in development. Every v1 capability below is i
 
 ### Agent integration and remaining limits
 
-- The optional Claude Agent SDK worker, six study skills and local tools are implemented. SDK 0.2.176/MCP 2.3.0 import and option construction were checked without model calls. Provider choice remains provisional and no paid comparison is claimed.
-- Codex has a read-only readiness probe and opt-in bounded trial runner; subscription billing controls require verification before trial execution. The app-server trial is not a completed benchmark.
-- Live provider-generated preparation/revision/research and full source-to-Atlas quality acceptance still need configured provider access and evaluation. Gemini comparison remains pending.
+- The selected provider boundary is our own Google ADK application deployed to Agent Runtime. The local opt-in adapter is scaffolded and tested using injected fake transports; it is not a deployed or production-ready agent.
+- Previous Claude/Codex adapter and comparison notes are historical. The £20 comparison budget remains unused; no provider trial or paid generation has run.
+- Live provider-generated preparation/revision/research and full source-to-Atlas quality acceptance still need configured provider access, deployment, and evaluation.
 - Full cross-device solution-key recovery remains a limitation: Windows DPAPI solutions require the same user profile. Backup archives are not encrypted containers; protect them as private study data.
 - Milestone checkboxes below reflect full acceptance, not the mere presence of an endpoint. Do not infer all v1 requirements are complete from this snapshot.
 
@@ -143,3 +143,26 @@ Browser interaction verification was attempted but unavailable through the curre
 - Real local app restarted through `scripts/run_local.py`; the B6La source now has four prepared units and the updated display-math/prerequisite refresher. Three real Coriolis source questions and the 19-node/18-edge reading-method map are present in private local state. No current learner checks were created on the real data during testing.
 - SDK import/dependency and option checks succeeded without a model request. Claude adapter is provisional; Codex probe is read-only; no benchmark winner or live generation quality is asserted.
 - The source exercise assistance package is excluded from Git to preserve spoiler protection; restore the private backup to move its prepared material to another machine.
+
+## Google ADK provider-boundary checkpoint — 2026-11-01
+
+- Replaced the incorrect prebuilt-Antigravity adapter with an opt-in transport
+  for our own ADK application deployed as an Agent Runtime `ReasoningEngine`.
+  It lazily creates the Agent Platform client, performs no durable writes, and
+  has no Claude or Gemini API managed-agent dependency.
+- Native-PDF preparation verifies the registered SHA-256 and sends the complete
+  selected chapter as `application/pdf`; selected-page subsets are copied into
+  an in-memory PDF without rasterisation. The adapter rejects changed sources,
+  inputs over the documented PDF limits, and implicit web research.
+- Offline and research-enabled runtimes are separate resources. The task
+  envelope carries call/token/budget controls for enforcement by the deployed
+  ADK application, while the local durable budget reservation remains the hard
+  pre-call gate.
+- Ten focused Google adapter tests pass using injected fake transports and no
+  credentials or paid calls. Coverage includes native whole-chapter bytes,
+  research isolation, source fingerprint rejection, lazy client creation,
+  missing usage, artifact validation and model-specific price defaults.
+- A real ADK package deployment, native-PDF smoke test, callback enforcement,
+  region/retention verification and representative annotation-quality run are
+  still required before this route is production ready. No milestone is marked
+  complete by this foundation alone.

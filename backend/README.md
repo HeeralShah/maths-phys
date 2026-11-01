@@ -117,3 +117,78 @@ signoff intent or a descriptive message. The worker never pushes. If Git is
 unavailable or committing fails, the note stays applied and the plan is marked
 `applied_unversioned`; retry after fixing repository configuration through
 `POST /synthesis-plans/{id}/commit`.
+
+## Google ADK / Agent Runtime foundation
+
+`google_agent_worker.py` is the opt-in provider boundary for **our custom ADK
+application deployed on Gemini Enterprise Agent Platform Agent Runtime**. It is
+not an adapter for the prebuilt Gemini API Antigravity managed agent. The newer
+`google-antigravity` Python SDK is also not a production dependency; it remains
+a separate quality-trial candidate.
+
+The module performs no SDK import, credential lookup, database write, upload or
+model call when imported. After the durable worker has claimed an explicitly
+requested job and reserved its budget, the adapter:
+
+1. verifies the registered source SHA-256;
+2. preserves an entire selected chapter as an in-memory native PDF (copying
+   selected pages without rasterising them);
+3. sends the PDF and a versioned task envelope to an already deployed ADK
+   `ReasoningEngine`;
+4. captures usage events, extracts untrusted JSON and runs the provider-neutral
+   artifact validator; and
+5. returns the artifact and estimated cost to the durable worker. It never
+   settles the ledger or publishes an edition itself.
+
+Install the optional client only when configuring this route:
+
+```powershell
+python -m pip install -r backend/requirements-google.txt
+```
+
+Authentication uses Google Application Default Credentials rather than a key
+stored in this repository. Required configuration is deliberately explicit:
+
+```powershell
+$env:MATHSPHYS_AGENT_ENABLED = "1"
+$env:MATHSPHYS_AGENT_PROVIDER = "google-adk"
+$env:GOOGLE_CLOUD_PROJECT = "your-project"
+$env:GOOGLE_CLOUD_LOCATION = "europe-west2"
+$env:MATHSPHYS_GOOGLE_RUNTIME = "projects/your-project/locations/europe-west2/reasoningEngines/offline-resource-id"
+$env:MATHSPHYS_AGENT_MODEL = "your-deployed-gemini-model"
+$env:MATHSPHYS_AGENT_MAX_LLM_CALLS = "6"
+$env:MATHSPHYS_AGENT_MAX_TOTAL_TOKENS = "100000"
+$env:MATHSPHYS_AGENT_JOB_BUDGET_USD = "1.00"
+$env:MATHSPHYS_AGENT_TOTAL_BUDGET_USD = "20.00"
+```
+
+Ordinary preparation always uses the offline resource. Research is rejected
+unless a different `MATHSPHYS_GOOGLE_RESEARCH_RUNTIME` is configured and the
+job itself explicitly includes `allow_web_research: true`. Tool and network
+policy belong in those deployed ADK revisions; the local adapter cannot make an
+online runtime safe merely by labelling a request “offline.”
+
+`RunConfig.max_llm_calls` is sent on every request. The requested total-token
+and monetary envelopes are also included for enforcement by callbacks in the
+deployed ADK application; Agent Runtime does not turn those application fields
+into a hard cross-sub-agent budget automatically. The local pre-call budget
+reservation remains the hard gate, and unknown usage retains that reservation.
+
+The foundation currently uses `async_stream_query` with a default nine-minute
+timeout, below Agent Runtime's ten-minute streaming limit. Google's longer
+query-job API writes both the input query and output to GCS; it is intentionally
+not an automatic fallback until a private bucket, deletion policy, cancellation
+and job-recovery path are designed.
+
+The adapter foundation is tested with injected transports and fake events; it
+does not make a credentialed call:
+
+```powershell
+python -m unittest backend.test_google_agent_worker -v
+```
+
+Before paid work is enabled, the ADK package still needs to be deployed and its
+native-PDF request, callbacks, region/retention settings and output contract
+must pass the representative sample protocol. See
+`docs/research/google-managed-agent-options.md` for the product comparison,
+privacy constraints and current chapter cost model.

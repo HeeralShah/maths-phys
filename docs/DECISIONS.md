@@ -21,15 +21,19 @@ This log separates accepted requirements from implementation proposals. A propos
 | D-13 | Private Git contains source notes, docs, code, and schemas; excludes PDFs, DBs, secrets, environments, caches, and temp artifacts. | Accepted | Use private Git for text/code history, plus a separate data backup plan. |
 | D-14 | Use human-readable Git messages for meaningful synthesis changes and preserve manual intent. | Accepted | Generated changes remain inspectable and reversible. |
 | D-15 | Persist structured study state, results, and graph data in SQLite; keep canonical topic notes in Markdown/Obsidian. | Accepted | Operational state belongs in SQLite; canonical prose belongs in the vault. |
-| D-16 | Use an agent SDK harness with vault, tools, web, math, and skills capabilities. | Accepted | Harness shape is decided; the specific SDK remains open pending comparison. |
-| D-17 | SDK comparison has a £20 total spending ceiling across all providers and sample jobs, including retries and paid tools. | Accepted by user 2026-11-01 | Track actual spend and stop before exceeding the total. |
+| D-16 | Build our own Gemini-powered agent with Google ADK and deploy it to Google's managed Agent Runtime, behind a provider-neutral job boundary. | Accepted 2026-11-01 | We own the agent code, skills, tools, prompts and orchestration. This supersedes the provisional Claude adapter, the planned provider contest and any proposal to depend on a prebuilt Antigravity agent. |
+| D-17 | The previously authorized £20 multi-provider comparison budget remains unspent; no comparison is required after the user's provider selection. | Superseded without spend 2026-11-01 | Do not spend it implicitly; any paid Google pilot still needs configured credentials and visible job limits. |
+| D-18 | Native PDF ingestion is mandatory inside our custom managed agent. Its ingestion stage sends the complete chapter PDF through Gemini's native document-understanding path before annotation and research stages consume the resulting source model. | Accepted 2026-11-01 | PDF is a first-class agent input and artifact; no lossy local text-extraction step or prebuilt-agent document limitation defines the architecture. |
+| D-19 | A complete chapter (or chapter-sized whole document/paper) is the preparation and publication scope; small checkable items live inside it. | Accepted 2026-11-01 | Pages remain provenance, and partial page results never become readable editions. |
+| D-20 | Reading additions are a separate layer anchored inline, interline, in the near margin, or as local overlays. | Accepted 2026-11-01 | Replace mixed Markdown cards and brittle first-text-match highlighting with structured anchors and derivation bridges. |
+| D-21 | Literature-map canvas nodes are external works only; paper internals remain off-canvas analysis records and filters. | Accepted 2026-11-01 | Replace the same-document Keshav graph; preserve citation facts separately from interpreted intellectual relationships. |
 
 ## Proposed technical defaults
 
 | ID | Proposal | Status | Validation needed |
 |---|---|---|---|
 | P-01 | React + TypeScript browser UI and Python + FastAPI local service. | Proposed | Validate local install/run ergonomics and file integration. |
-| P-03 | Local agent SDK harness with explicit tools for vault, web, math, and skills. | Accepted; specific SDK open | Compare candidates under SDK-TRIAL.md and define the tool/permission contract. |
+| P-03 | Custom Google managed-agent pipeline: Google ADK orchestration on Agent Runtime, with native Gemini PDF ingestion followed by bounded annotation and research stages. | Accepted direction | Validate fidelity, actual token usage, deployment-region/privacy settings and runtime maturity before enabling private sources. |
 | P-04 | Keep source files in user-managed locations; persist source metadata and references. | Proposed | Decide stable path handling and behavior when a file moves. |
 | P-05 | Encrypt protected solution material and control reveal at the app boundary. | Proposed; details open | Define threat model, key custody, backup, and reveal behavior first. |
 
@@ -37,20 +41,20 @@ This log separates accepted requirements from implementation proposals. A propos
 
 | ID | Question | Gate |
 |---|---|---|
-| O-02 | Which SDK: Claude Agent SDK, Codex SDK, or Google ADK? | After the authorized trial protocol completes within recorded budget limits. |
+| O-02 | Which structured bibliographic provider should back citation topology: OpenAlex, Semantic Scholar, Crossref, or a bounded combination? | Before enabling automated external literature-map research. |
 | O-03 | Backup destination, retention, encryption, key recovery, and restore cadence? | Before claiming dependable v1 persistence. |
 | O-04 | Exact encryption scope and solution reveal/storage policy? | Before storing protected solutions or implementing recovery keys. |
 | O-05 | Supported source formats and local file lifecycle? | Before finalizing ingestion schema. |
 
-## SDK comparison cases (not results)
+## Retired SDK comparison cases (no results)
 
-The controlled comparison must use the same three cases for each candidate SDK:
+The prior controlled-comparison design named these cases:
 
 - Sample B6La, physical PDF page 30 (printed page 29).
 - `MA222_260_notes_2020-21`, page 27.
 - `ClassicalDynamicsI`, page 5.
 
-No benchmark has been run. Do not describe any SDK as selected or any score as observed until the protocol is run and results recorded.
+No benchmark was run and no money was spent. The user subsequently selected a custom Gemini-powered agent deployed on Google's managed agent runtime, so the provider contest is retired. The same cases remain useful as Google pipeline fidelity fixtures, not as evidence of a completed comparison.
 
 ## Implementation defaults adopted during the authorised build
 
@@ -58,5 +62,5 @@ No benchmark has been run. Do not describe any SDK as selected or any score as o
 - Initial source intake supports local PDFs; canonical notes remain Markdown. The app stores registered paths and source hashes rather than copying originals into Git.
 - Windows full solutions use current-user DPAPI; other platforms use a private Fernet key. Backups preserve relevant data but do not create portable Windows DPAPI keys.
 - Backup destinations are user-specified ZIP archives with SHA-256 manifests, consistent SQLite snapshots and source-path rebinding on restore. Active Atlas journals are refused; external vault editors should be paused.
-- Claude is an optional provisional adapter, not the selected winner of a comparison. Native Codex app-server access is probed separately. No provider-generated benchmark result has been recorded.
+- The prior Claude adapter is historical provisional code and is not the selected runtime. The current Google worker scaffold is not production ready until it uses the chosen ADK/Agent Runtime architecture and passes provider-neutral contract tests. No provider-generated result has been recorded.
 - Subsection signoff itself authorises synthesis and application of a valid checked-only plan; no extra per-note review gate is introduced.

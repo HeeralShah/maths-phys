@@ -9,7 +9,10 @@ Status: architecture baseline captured; application foundation is in development
 3. **Study store** — SQLite database for metadata, checks, study status, edition/revision records, research results, graph nodes/edges, and operation status.
 4. **Vault** — existing Obsidian Markdown tree remains the human-readable canonical topic-note store. App-created or updated notes must respect manual intent and retain source links.
 5. **Source files** — original PDFs and other source documents remain user-owned files outside Git. The app stores metadata and a stable reference; copy/import behavior is an open question.
-6. **Agent harness** — an SDK harness with narrowly scoped vault, tools, web, math, and skills capabilities. The SDK choice is pending the authorized trial.
+6. **Custom managed study agent** — our Google ADK application deployed to Google's managed Agent Runtime. It owns explicit subflows for complete-chapter ingestion, source-faithful annotation, optional evidence research, clarification revision and Atlas synthesis. We control its skills, tools, prompts, context selection and budgets; it is not a prebuilt Antigravity agent.
+7. **Native document-ingestion stage** — the managed agent passes a complete chapter PDF to a Gemini model through native document understanding and produces schema-constrained, faithful ordered source blocks. Those blocks and the original PDF/artifact remain available to later stages so text, equations and layout can be checked against source.
+8. **Annotation and research stages** — bounded ADK agents receive only the relevant chapter bundle, learner profile, annotation grammar, selected Atlas context and explicitly enabled tools. Web/literature research is a distinct opt-in job rather than an implicit part of ordinary reading-edition generation.
+9. **Local validators** — provider-neutral schema, coverage, anchor, mathematical-markup, and render validation before atomic publication. Managed-agent output never writes directly to durable stores.
 
 ## Data ownership and invariants
 
@@ -25,10 +28,10 @@ Status: architecture baseline captured; application foundation is in development
 ## Proposed command lifecycle
 
 ```text
-source metadata -> explicit Prepare -> agent completes edition content -> persist complete artifact -> render
+source metadata -> confirm chapter scope -> explicit Prepare -> custom managed-agent job -> native PDF ingestion -> bounded annotation stages -> local validation -> persist complete artifact -> render
 clarification chat submission -> background revision job -> explicit Refresh -> preserve checks + reading position
 checked study unit -> explicit Signoff -> background synthesis -> proposed/recorded Atlas changes + provenance
-research request -> explicit Start research -> evidence-backed records -> local graph browse/expand
+research request -> explicit Start research -> bibliographic topology + managed evidence analysis -> complete literature map -> local browse/filter
 problem reveal -> show selected prerecorded level (no agent operation)
 ```
 
@@ -42,5 +45,5 @@ A recoverable backup must include the SQLite database, referenced assets, vault 
 
 - Keep credentials and keys outside Git and outside generated note content.
 - Agent/web access is mediated by explicit user actions and declared tools. Record which sources and tools supported a result.
-- Require a configured paid-trial budget before invoking any paid SDK/model/web service. Cost estimates may be shown as actual/observed amounts after execution, never as study-time predictions.
+- Require a configured per-job provider budget before invoking any paid model/agent/web service. Show a transparent preflight estimate from the selected model, expected token envelope, runtime and enabled research tools; permit at most one separately budgeted repair and reconcile actual usage locally. Cost estimates concern provider spend, never learner study time.
 - Solution material must not enter default prompts, search results, or general retrieval before its explicit reveal. Encryption and reveal implementation await the open threat-model decision.

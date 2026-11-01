@@ -6,10 +6,14 @@ from pydantic import BaseModel, Field
 from .store import Store
 from .vault import read_note, search_notes
 from .problem_sets import build_router as build_problem_sets_router
+from .chapter_routes import build_router as build_chapter_router
+from .literature_routes import build_router as build_literature_router
 
 store = Store(os.environ.get("MATHSPHYS_DB", "maths_phys.sqlite3"))
 app = FastAPI(title="Maths-Phys local service", version="0.1.0")
 app.include_router(build_problem_sets_router(store))
+app.include_router(build_chapter_router(store))
+app.include_router(build_literature_router(store))
 
 class SourceIn(BaseModel):
     title: str

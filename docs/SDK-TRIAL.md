@@ -1,20 +1,22 @@
-# Agent SDK trial protocol
+# Retired multi-provider SDK trial protocol
 
-Status: authorized but not yet run; no benchmark has been completed. The total spending cap is £20 across all providers, sample cases, retries, and paid tools. Track actual spend and stop before exceeding the cap; no separate per-provider ceiling is required.
+Status: superseded without a run or spend. On 2026-11-01 the user selected a custom Gemini-powered agent, owned by this project and deployed on Google's managed Agent Runtime, and explicitly rejected Claude as the production agent layer. This file is retained as historical evaluation design; it does not authorize a provider contest or any paid call. Google pipeline validation uses visible per-job limits and the same representative sources where useful.
 
-## Candidates and scope
+## Historical cases (not an active trial)
 
-Compare Claude Agent SDK, Codex SDK, and Google ADK as harnesses for a local personal study application. The intended harness needs explicit vault, tools, web, math, and skills capabilities, with controllable local file access, observable tool calls, and outputs that can be persisted with provenance.
+The original comparison plan considered Claude Agent SDK, Codex SDK, and Google ADK. That provider contest was retired after the user selected a custom Gemini-powered Google agent and rejected Claude as the production agent layer. The current selection is recorded in [ADR 0003](adr/0003-use-custom-google-adk-agent-runtime.md); the Google architecture and cost envelope are in [the Google agent report](research/google-agent-sdk-comparison.md). The £20 cap remains unspent and is not standing authorization for paid calls.
 
-Use the same three representative cases for every candidate:
+These three cases were defined for the retired contest and may be reused as local fidelity fixtures:
 
 1. Sample B6La, physical PDF page 30 (printed page 29).
 2. `MA222_260_notes_2020-21`, page 27.
 3. `ClassicalDynamicsI`, page 5.
 
+No SDK comparison is currently planned. If a bounded Google compatibility experiment is proposed later, it requires a concrete plan and explicit authorization before any paid call.
+
 Do not substitute cases between SDKs. Confirm exact local source identity and page extraction before running; record hashes or stable file identifiers without copying source PDFs into the repository.
 
-## Gate before execution
+## Retired protocol (reference only)
 
 Record all of the following before any paid activity:
 
@@ -62,6 +64,6 @@ For each candidate and case record: SDK/version, model/version, date, source ide
 
 The trial is complete only when all three cases ran under the controlled protocol for each candidate or a specific candidate/case failure is documented; all scores have evidence notes; costs are within the approved ceiling; and the report contains a reasoned recommendation. Until then, SDK selection remains open.
 
-## Approved budget — 2026-11-01
+## Approved historical budget — 2026-11-01
 
-The user approved £20 total across all provider trials, including retries and paid tools. Allocate bounded jobs within that ceiling; record actual usage and currency conversion used. Do not run when provider credentials or cost controls are unavailable. No trials have run yet.
+The user approved £20 total across all provider trials, including retries and paid tools. This cap is historical evaluation authorization only; it is not a standing requirement to compare rejected providers or run Google generation. Record actual usage and currency conversion if the user later authorizes a pilot. No trials have run and no money has been spent.

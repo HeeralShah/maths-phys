@@ -20,6 +20,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from .migrations import run_migrations
+
 
 HINT_LEVELS = ("orientation", "small_hint", "strong_hint", "partial_solution", "full_solution")
 GRAPH_RELATIONS = ("cites", "requires", "extends", "assumes")
@@ -223,6 +225,7 @@ class Store:
               publication_key TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
               package_hash TEXT NOT NULL, result TEXT NOT NULL, created_at TEXT NOT NULL);
             """)
+            run_migrations(db)
             # Preserve legacy problem records while removing any historical plaintext full solutions.
             for row in db.execute("SELECT problem_id,content FROM problem_material WHERE kind='solution'").fetchall():
                 if not row["content"].startswith(("dpapi:", "fernet:")):
