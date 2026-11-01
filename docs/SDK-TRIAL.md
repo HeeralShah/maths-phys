@@ -1,6 +1,6 @@
 # Agent SDK trial protocol
 
-Status: authorized but not yet run; no benchmark has been completed. The numeric budget and per-provider ceiling remain unresolved. Record those limits and execution conditions before starting, then stop when a limit is reached.
+Status: authorized but not yet run; no benchmark has been completed. The total spending cap is £20 across all providers, sample cases, retries, and paid tools. Track actual spend and stop before exceeding the cap; no separate per-provider ceiling is required.
 
 ## Candidates and scope
 
@@ -8,7 +8,7 @@ Compare Claude Agent SDK, Codex SDK, and Google ADK as harnesses for a local per
 
 Use the same three representative cases for every candidate:
 
-1. Sample B6La.
+1. Sample B6La, physical PDF page 30 (printed page 29).
 2. `MA222_260_notes_2020-21`, page 27.
 3. `ClassicalDynamicsI`, page 5.
 
@@ -18,14 +18,14 @@ Do not substitute cases between SDKs. Confirm exact local source identity and pa
 
 Record all of the following before any paid activity:
 
-- Total paid trial ceiling and per-provider/model limits.
+- Total paid trial ceiling of £20 across every provider, sample case, retry, and paid tool.
 - Whether web access is allowed and any allowed domains.
 - Which account/project/credentials may be used (never record secret values).
 - Exact model/version and SDK release for each run.
 - Local hardware/runtime constraints and expected concurrency.
 - User authorization for any non-local tool calls.
 
-If zero-cost or local-only evaluation is possible, still record the exact allowed scope. Stop when the ceiling is reached; do not automatically retry with a paid fallback.
+If zero-cost or local-only evaluation is possible, still record the exact allowed scope. Keep a cumulative ledger across providers and stop before the £20 total ceiling; do not automatically retry with a paid fallback if it could exceed the remaining balance.
 
 ## Controlled run procedure
 
@@ -61,3 +61,7 @@ For each candidate and case record: SDK/version, model/version, date, source ide
 ## Completion criteria
 
 The trial is complete only when all three cases ran under the controlled protocol for each candidate or a specific candidate/case failure is documented; all scores have evidence notes; costs are within the approved ceiling; and the report contains a reasoned recommendation. Until then, SDK selection remains open.
+
+## Approved budget — 2026-11-01
+
+The user approved £20 total across all provider trials, including retries and paid tools. Allocate bounded jobs within that ceiling; record actual usage and currency conversion used. Do not run when provider credentials or cost controls are unavailable. No trials have run yet.

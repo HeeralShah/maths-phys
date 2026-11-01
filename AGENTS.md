@@ -7,7 +7,7 @@ This repository is a private study vault and the source workspace for a proposed
 - Read [the product requirements](docs/PRODUCT.md) and [the decision log](docs/DECISIONS.md) for product work.
 - Read [the architecture](docs/ARCHITECTURE.md) before changing persistence, integrations, or data boundaries.
 - Read [the implementation tracker](docs/IMPLEMENTATION.md) before claiming scope or completion.
-- Read [the SDK trial protocol](docs/SDK-TRIAL.md) before running any agent SDK evaluation. The SDK comparison is authorized but has not been run; record its numeric budget first.
+- Read [the SDK trial protocol](docs/SDK-TRIAL.md) before running any agent SDK evaluation. The comparison is authorized with a £20 total cap across providers, cases, retries, and paid tools; record actual spend and stop before exceeding it.
 - Keep [GLOSSARY.md](GLOSSARY.md) authoritative for domain terms; implementation choices belong in docs, not the glossary.
 
 ## Data and behavior guardrails

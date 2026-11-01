@@ -88,10 +88,9 @@ An operation that can invoke an agent, perform paid web research, or change dura
 
 ## Open product questions
 
-1. What numeric budget and per-provider ceiling apply to the already authorized SDK trials and any paid model/web usage?
-2. Which backup destination and recovery/key custody model should be used?
-3. What exact encryption scope and solution-reveal rules are desired?
-4. Which of Claude Agent SDK, Codex SDK, or Google ADK should be the first implementation target after a controlled comparison?
-5. What source formats beyond PDFs and Markdown must v1 ingest?
+1. Which backup destination and recovery/key custody model should be used?
+2. What exact encryption scope and solution-reveal rules are desired?
+3. Which of Claude Agent SDK, Codex SDK, or Google ADK should be the first implementation target after a controlled comparison?
+4. What source formats beyond PDFs and Markdown must v1 ingest?
 
-These questions do not defer the listed v1 features. SDK trials are authorized; record their numeric budget and execution limits before starting. The other questions gate choices that would be costly or security-sensitive.
+These questions do not defer the listed v1 features. SDK trials are authorized with a £20 total spending cap across all providers, cases, retries, and paid tools. The remaining questions gate choices that would be costly or security-sensitive.

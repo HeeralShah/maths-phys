@@ -22,6 +22,7 @@ This log separates accepted requirements from implementation proposals. A propos
 | D-14 | Use human-readable Git messages for meaningful synthesis changes and preserve manual intent. | Accepted | Generated changes remain inspectable and reversible. |
 | D-15 | Persist structured study state, results, and graph data in SQLite; keep canonical topic notes in Markdown/Obsidian. | Accepted | Operational state belongs in SQLite; canonical prose belongs in the vault. |
 | D-16 | Use an agent SDK harness with vault, tools, web, math, and skills capabilities. | Accepted | Harness shape is decided; the specific SDK remains open pending comparison. |
+| D-17 | SDK comparison has a £20 total spending ceiling across all providers and sample jobs, including retries and paid tools. | Accepted by user 2026-11-01 | Track actual spend and stop before exceeding the total. |
 
 ## Proposed technical defaults
 
@@ -36,7 +37,6 @@ This log separates accepted requirements from implementation proposals. A propos
 
 | ID | Question | Gate |
 |---|---|---|
-| O-01 | Numeric SDK/model/web trial budget and per-provider spending ceiling? | Record before executing the authorized SDK comparison. |
 | O-02 | Which SDK: Claude Agent SDK, Codex SDK, or Google ADK? | After the authorized trial protocol completes within recorded budget limits. |
 | O-03 | Backup destination, retention, encryption, key recovery, and restore cadence? | Before claiming dependable v1 persistence. |
 | O-04 | Exact encryption scope and solution reveal/storage policy? | Before storing protected solutions or implementing recovery keys. |
@@ -46,7 +46,7 @@ This log separates accepted requirements from implementation proposals. A propos
 
 The controlled comparison must use the same three cases for each candidate SDK:
 
-- Sample B6La.
+- Sample B6La, physical PDF page 30 (printed page 29).
 - `MA222_260_notes_2020-21`, page 27.
 - `ClassicalDynamicsI`, page 5.
 

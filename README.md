@@ -4,7 +4,9 @@ This repository is an existing personal Obsidian vault and a working source work
 
 ## Current status
 
-Product direction and implementation requirements are documented, and the application foundation is in development. React/TypeScript and Python/FastAPI remain proposed stack choices. SQLite persistence and an SDK harness are accepted; the specific SDK is pending comparison. No SDK benchmark has been run; the user has authorized the trial, and its numeric budget remains unresolved.
+The local application foundation is in development. The backend has SQLite persistence and a FastAPI adapter for source metadata, immutable edition revisions, dated checks, section signoff snapshots, and durable job requests with status/idempotency/recovery primitives. The frontend scaffold is being built. The agent worker is unconfigured, so preparation/revision/signoff jobs are recorded but no agent generation or synthesis runs. Research graphs, literature views, problem library, and hint UI are not implemented yet.
+
+React/TypeScript and Python/FastAPI are the current stack choices. SQLite persistence and the SDK harness shape are accepted; the specific SDK awaits the authorized comparison. No SDK benchmark has been run. The total trial spending cap is £20 across all providers, cases, retries, and paid tools.
 
 ## Project documents
 
@@ -21,4 +23,40 @@ The root folders `00 Home`, `01 System`, `02 Atlas`, `90 Inbox`, and `99 Archive
 
 ## Development
 
-There is no application development command yet. Add setup and run instructions here once the implementation milestone establishes the actual toolchain; do not document proposed commands as working commands.
+Commands below use the repository's existing Windows virtual environment and package scripts. Run them from the repository root unless a directory change is shown.
+
+### Backend unit tests
+
+The backend currently has seven standard-library unit tests covering durable revisions/checks, signoff selection, idempotent job requests, job transitions, stale-job recovery, and the unconfigured worker boundary.
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s backend -p "test_*.py"
+```
+
+### Local API
+
+Set the local database path and start the FastAPI service:
+
+```powershell
+$env:MATHSPHYS_DB = "maths_phys.sqlite3"
+.\.venv\Scripts\python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
+```
+
+The API stores a local SQLite database. Back it up with the service stopped. Do not commit the database.
+
+### Frontend
+
+```powershell
+Set-Location frontend
+npm install
+npm run dev
+```
+
+Build the frontend with:
+
+```powershell
+Set-Location frontend
+npm run build
+```
+
+The dev server binds to `127.0.0.1`. The app is still under development; the full study workflows and agent-backed jobs are not available yet.

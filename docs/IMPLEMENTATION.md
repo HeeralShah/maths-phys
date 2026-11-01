@@ -1,10 +1,30 @@
 # Implementation tracker
 
-Status: application foundation is in development. Every v1 capability below is in scope; milestones are a build sequence, not a deferral list. Mark a milestone complete only when each criterion has recorded evidence. No SDK trial is claimed here.
+Status: application foundation is in development. Every v1 capability below is in scope; milestones are a build sequence, not a deferral list. The snapshot below distinguishes working foundations from product behavior that is still absent. No SDK trial is claimed here.
+
+## Current implementation snapshot
+
+### Implemented foundations
+
+- Backend SQLite schema and FastAPI adapter cover source metadata/outlines, immutable saved revisions, dated manual checks, section signoff records, and explicit prepare/revise/signoff job requests.
+- Section signoff snapshots only units whose latest revision is currently marked understood.
+- Job records include status transitions, stable IDs, caller idempotency keys, atomic claiming primitives, and recovery of stale running leases.
+- Reads and manual checks do not enqueue jobs. Source registration stores metadata/outline only; it does not upload or process source content.
+- Seven backend standard-library tests are present in `backend/test_store.py`. The documented command is `python -m unittest discover -s backend -p "test_*.py"` from the repository root.
+
+### Not implemented or not operational
+
+- The worker is unconfigured. Queued jobs are durable, but no agent generation, revision, or synthesis executes; the stub refuses to mark a job complete without a real worker.
+- Source parsing, faithful rendered reading editions, generated edition publication, chat-driven revision plus refresh, and end-to-end signoff synthesis are not complete workflows.
+- Research/literature/assumption graphs, problem library, progressive hint UI, solution protection, backup/restore workflow, and full annotation/refresher experience remain unimplemented.
+- The frontend scaffold is in development; do not infer that a visible shell means its linked v1 workflows are operational.
+
+The snapshot reflects repository code and test inventory; milestone checkboxes below remain open until the full acceptance criteria are evidenced.
 
 ## M0 — Decisions and local project skeleton
 
-- [ ] Record the approved paid trial ceiling and tool/model constraints.
+- [x] Record the approved £20 total SDK trial cap across providers, cases, retries, and paid tools.
+- [ ] Record exact model/version, tool permissions, and allowed web scope for each run.
 - [ ] Resolve source file ownership/path behavior and supported v1 formats.
 - [ ] Define backup target, restore procedure, encryption scope, and key recovery.
 - [ ] Validate proposed React/TypeScript + FastAPI stack with a local vertical slice.
@@ -41,7 +61,7 @@ Evidence: representative new and imported study materials preserve correct curre
 - [ ] Refresh retains checks and current reading position.
 - [ ] Material revision of signed-off content asks for reconfirmation.
 
-Evidence: a revision walkthrough covering unapplied, applied, refreshed, and reconfirmation states.
+Evidence: a revision walkthrough covering submitted, completed, refreshed, and reconfirmation states.
 
 ## M4 — Problem library and hint ladder
 
@@ -84,3 +104,10 @@ Evidence: multi-source signoff walkthrough including incremental update, uncheck
 - [ ] All M1–M6 criteria are evidenced; no listed v1 feature is omitted.
 
 Evidence: restore record, privacy/config review, and complete v1 acceptance checklist.
+
+## Initial implementation verification — 2026-11-01
+
+- Seven backend unit tests pass, covering persistence, manual checks, partial sign-off, idempotency, job transitions and interrupted-job recovery.
+- FastAPI application import and OpenAPI generation pass in the local virtual environment.
+- Frontend TypeScript checking and Vite production build pass (`npm run build`). Browser interaction/visual verification remains pending.
+- The browser shell connects to current APIs; graph/problem views and SDK processing remain explicitly unimplemented.
